@@ -314,9 +314,9 @@ button:hover {
   }
 }
 
-/* ═══════════════════════════════════════
+/* =======================================
    Landing Page
-   ═══════════════════════════════════════ */
+   ======================================= */
 
 .landing {
   min-height: 100vh;
@@ -877,7 +877,7 @@ button:hover {
   border-color: var(--accent-color);
 }
 
-/* FamilyNotes – „Við segjum" */
+/* FamilyNotes  Vid segjum" */
 .family-container {
   display: flex;
   flex-direction: column;
@@ -1000,7 +1000,7 @@ button:hover {
   font-size: 0.82rem;
 }
 
-/* ── Selection Popup ── */
+/*  Selection Popup  */
 .sel-popup {
   position: fixed;
   background: var(--bg-color);
@@ -1092,7 +1092,7 @@ button:hover {
   pointer-events: none;
 }
 
-/* ── ReadersSetup modal ── */
+/*  ReadersSetup modal  */
 .readers-overlay {
   position: fixed;
   inset: 0;
@@ -1202,7 +1202,7 @@ button:hover {
   gap: 8px;
 }
 
-/* ── FamilyNotes entry quote ── */
+/*  FamilyNotes entry quote  */
 .family-entry-quote {
   font-size: 0.78rem;
   font-style: italic;
@@ -1225,7 +1225,7 @@ button:hover {
   font-size: 0.8rem;
 }
 
-/* ── Annotations panel (merged Samlestur + Q&A) ── */
+/*  Annotations panel (merged Samlestur + Q&A)  */
 .annotations-panel {
   display: flex;
   flex-direction: column;
@@ -1259,7 +1259,7 @@ button:hover {
   padding: 9px 10px;
 }
 
-/* ── Samlestur / Annotate Mode ── */
+/*  Samlestur / Annotate Mode  */
 
 .btn-annotate-active {
   background: #2d6a2d;
@@ -1756,9 +1756,9 @@ button:hover {
   border-radius: 12px;
 }
 
-/* ═══════════════════════════════════════
+/* =======================================
    App Loading
-   ═══════════════════════════════════════ */
+   ======================================= */
 .app-loading {
   min-height: 100vh;
   display: flex;
@@ -1784,9 +1784,9 @@ button:hover {
   font-style: italic;
 }
 
-/* ═══════════════════════════════════════
+/* =======================================
    Login Page
-   ═══════════════════════════════════════ */
+   ======================================= */
 .login-page {
   min-height: 100vh;
   display: flex;
@@ -1887,9 +1887,9 @@ button:hover {
   line-height: 1.5;
 }
 
-/* ═══════════════════════════════════════
+/* =======================================
    Family Setup
-   ═══════════════════════════════════════ */
+   ======================================= */
 .family-setup-card {
   max-width: 480px;
   text-align: left;
@@ -2007,7 +2007,7 @@ button:hover {
   font-style: italic;
 }
 
-/* Family-banner á heimasíðu */
+/* Family-banner a heimasidu */
 .landing-family-banner {
   display: flex;
   align-items: center;
@@ -2034,9 +2034,9 @@ button:hover {
   flex-shrink: 0;
 }
 
-/* ═══════════════════════════════════════
-   Foreldragluggi — Parent Panel
-   ═══════════════════════════════════════ */
+/* =======================================
+   Foreldragluggi - Parent Panel
+   ======================================= */
 .parent-overlay {
   position: fixed;
   inset: 0;
@@ -2117,7 +2117,7 @@ button:hover {
 .parent-btn-approve.active { background: #27ae60; color: #fff; border-color: #27ae60; }
 .parent-btn-retry.active   { background: #e67e22; color: #fff; border-color: #e67e22; }
 
-/* Recorder — lesandaval */
+/* Recorder - lesandaval */
 .recorder-reader-pick { padding: 0 0 8px; }
 .recorder-reader-label { font-size: 0.78rem; opacity: 0.55; display: block; margin-bottom: 6px; }
 .recorder-reader-btns { display: flex; flex-wrap: wrap; gap: 6px; }
