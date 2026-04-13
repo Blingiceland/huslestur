@@ -110,11 +110,28 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
       </header>
 
       <main className="landing-main">
-        {/* Fjölskyldubanner */}
+        {/* Family banner */}
         {family && (
           <div className="landing-family-banner">
-            <span className="landing-family-name">🏠 {family.name}</span>
-            <button className="landing-logout-btn" onClick={logOut}>Skrá út</button>
+            <span className="landing-family-name">{family.name}</span>
+            <div className="landing-family-actions">
+              {family.shareCode && (
+                <button
+                  className="landing-share-btn"
+                  onClick={() => {
+                    const link = `${window.location.origin}/lesa/${family.shareCode}`;
+                    navigator.clipboard.writeText(link).then(() => {
+                      alert('Linkur afritadur! Sendu hann til barnanna.');
+                    }).catch(() => {
+                      prompt('Afritadu linkinn:', link);
+                    });
+                  }}
+                >
+                  Deila med bornum
+                </button>
+              )}
+              <button className="landing-logout-btn" onClick={logOut}>Skra ut</button>
+            </div>
           </div>
         )}
         {/* Participants */}

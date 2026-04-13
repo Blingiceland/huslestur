@@ -1,23 +1,14 @@
 /**
- * FamilyContext – geymir og samstillir fjölskyldugögn við Firestore.
+ * FamilyContext -- geymir og samstillir fjolskyldugogn vid Firestore.
  *
  * Firestore uppbygging:
- *   families/{uid}/
- *     name: string
- *     members: string[]          ← nöfn barna
- *     createdAt: timestamp
- *
+ *   families/{uid}/ - fjolskylduskjal med name, members[], shareCode
+ *   shares/{shareCode} - uppflettiskjal med { uid }
  *   families/{uid}/progress/{bookId}
- *     readStatus: { [idx]: boolean }
- *
  *   families/{uid}/notes/{bookId}
- *     text: string
- *
  *   families/{uid}/qna/{bookId}
- *     questions: [{question, answer, timestamp}]
- *
  *   families/{uid}/annotations/{bookId}
- *     entries: [{id, text, who, quote, isQuestion}]
+ *   families/{uid}/recordings/{autoId}
  */
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { db } from '../firebase';
@@ -28,92 +19,150 @@ import { useAuth } from './AuthContext';
 
 const FamilyContext = createContext(null);
 
+// Bua til 6-stafa koda
+function generateShareCode() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
 export function FamilyProvider({ children }) {
   const { user } = useAuth();
   const uid = user?.uid;
 
-  const [family,      setFamily]      = useState(null);   // { name, members[] }
+  const [family,        setFamily]        = useState(null);
   const [loadingFamily, setLoadingFamily] = useState(true);
+  const [childMode,     setChildMode]     = useState(null);   // { uid, reader } ef barn er innskrad
+  const [familyUid,     setFamilyUid]     = useState(null);   // uid sem er i notkun (foreldri eda barn)
 
-  // Hlusta á fjölskylduskjal í rauntíma
+  // Ef barn opnar /lesa/XXXXXX link
   useEffect(() => {
+    const path = window.location.pathname;
+    const match = path.match(/^\/lesa\/([A-Z0-9]{6})$/i);
+    if (match) {
+      const code = match[1].toUpperCase();
+      // Fletta upp shareCode
+      getDoc(doc(db, 'shares', code)).then(snap => {
+        if (snap.exists()) {
+          const parentUid = snap.data().uid;
+          setFamilyUid(parentUid);
+          // Saekja fjolskyldu
+          getDoc(doc(db, 'families', parentUid)).then(fSnap => {
+            if (fSnap.exists()) {
+              setFamily(fSnap.data());
+              setChildMode({ uid: parentUid, reader: null });
+            }
+            setLoadingFamily(false);
+          });
+        } else {
+          setLoadingFamily(false);
+        }
+      });
+      return;
+    }
+  }, []);
+
+  // Hlusta a fjolskylduskjal i rauntima (for parent)
+  useEffect(() => {
+    if (childMode) return; // barn notar ekki listener
     if (!uid) { setFamily(null); setLoadingFamily(false); return; }
     setLoadingFamily(true);
+    setFamilyUid(uid);
     const ref = doc(db, 'families', uid);
     const unsub = onSnapshot(ref, (snap) => {
       setFamily(snap.exists() ? snap.data() : null);
       setLoadingFamily(false);
     });
     return unsub;
-  }, [uid]);
+  }, [uid, childMode]);
 
-  // Búa til fjölskyldu eftir fyrstu innskráningu
+  // activeUid = foreldri eda barnagatt uid
+  const activeUid = childMode?.uid || uid;
+
+  // Bua til fjolskyldu eftir fyrstu innskraningu
   const createFamily = async (familyName, memberNames) => {
     if (!uid) return;
+    const shareCode = generateShareCode();
     await setDoc(doc(db, 'families', uid), {
       name: familyName,
       members: memberNames,
+      shareCode,
       ownerEmail: user.email,
       ownerName: user.displayName,
       createdAt: serverTimestamp(),
     });
+    // Vista share code uppflettiskjal
+    await setDoc(doc(db, 'shares', shareCode), { uid });
   };
 
   const updateMembers = async (members) => {
-    if (!uid) return;
-    await updateDoc(doc(db, 'families', uid), { members });
+    if (!activeUid) return;
+    await updateDoc(doc(db, 'families', activeUid), { members });
   };
 
-  // ── Hjálparfall til að lesa undirskjal ───────────────────────
-  const subRef = (collection, bookId) =>
-    doc(db, 'families', uid, collection, bookId);
+  // Hjalparfall til ad lesa undirskjal
+  const subRef = (coll, bookId) =>
+    doc(db, 'families', activeUid, coll, bookId);
 
-  // ── Lesframgangur ────────────────────────────────────────────
+  // -- Lesframgangur --
   const getProgress = useCallback(async (bookId) => {
-    if (!uid) return {};
+    if (!activeUid) return {};
     const snap = await getDoc(subRef('progress', bookId));
     return snap.exists() ? (snap.data().readStatus ?? {}) : {};
-  }, [uid]);
+  }, [activeUid]);
 
   const setReadStatus = async (bookId, readStatus) => {
-    if (!uid) return;
+    if (!activeUid) return;
     await setDoc(subRef('progress', bookId), { readStatus }, { merge: true });
   };
 
-  // ── Glósur ───────────────────────────────────────────────────
+  // -- Glosur --
   const getNotes = useCallback(async (bookId) => {
-    if (!uid) return {};
+    if (!activeUid) return {};
     const snap = await getDoc(subRef('notes', bookId));
     return snap.exists() ? (snap.data().notesDict ?? {}) : {};
-  }, [uid]);
+  }, [activeUid]);
 
   const saveNotes = async (bookId, notesDict) => {
-    if (!uid) return;
+    if (!activeUid) return;
     await setDoc(subRef('notes', bookId), { notesDict }, { merge: true });
   };
 
-  // ── Spurningar (Q&A) ─────────────────────────────────────────
+  // -- Spurningar (Q&A) --
   const getQna = useCallback(async (bookId) => {
-    if (!uid) return {};
+    if (!activeUid) return {};
     const snap = await getDoc(subRef('qna', bookId));
     return snap.exists() ? (snap.data().qnaDict ?? {}) : {};
-  }, [uid]);
+  }, [activeUid]);
 
   const saveQna = async (bookId, qnaDict) => {
-    if (!uid) return;
+    if (!activeUid) return;
     await setDoc(subRef('qna', bookId), { qnaDict }, { merge: true });
   };
 
-  // ── Athugasemdir (annotations) ───────────────────────────────
+  // -- Athugasemdir --
   const getAnnotations = useCallback(async (bookId) => {
-    if (!uid) return {};
+    if (!activeUid) return {};
     const snap = await getDoc(subRef('annotations', bookId));
     return snap.exists() ? (snap.data().familyDict ?? {}) : {};
-  }, [uid]);
+  }, [activeUid]);
 
   const saveAnnotations = async (bookId, familyDict) => {
-    if (!uid) return;
+    if (!activeUid) return;
     await setDoc(subRef('annotations', bookId), { familyDict }, { merge: true });
+  };
+
+  // Set child reader name
+  const pickChildReader = (name) => {
+    if (childMode) setChildMode({ ...childMode, reader: name });
+  };
+
+  // Fa share link
+  const getShareLink = () => {
+    if (!family?.shareCode) return null;
+    const origin = window.location.origin;
+    return `${origin}/lesa/${family.shareCode}`;
   };
 
   return (
@@ -123,6 +172,7 @@ export function FamilyProvider({ children }) {
       getNotes, saveNotes,
       getQna, saveQna,
       getAnnotations, saveAnnotations,
+      childMode, pickChildReader, getShareLink,
     }}>
       {children}
     </FamilyContext.Provider>

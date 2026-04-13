@@ -5,6 +5,7 @@ import { useFamily } from './contexts/FamilyContext';
 
 import LoginPage from './components/LoginPage';
 import FamilySetup from './components/FamilySetup';
+import ChildGate from './components/ChildGate';
 import LandingPage from './components/LandingPage';
 import CategoryPicker from './components/CategoryPicker';
 import Sidebar from './components/Sidebar';
@@ -35,7 +36,10 @@ export default function App() {
     getNotes, saveNotes,
     getQna, saveQna,
     getAnnotations, saveAnnotations,
+    childMode, getShareLink,
   } = useFamily();
+
+  const isChildMode = !!childMode;
 
   // ── Skoðun og bók ────────────────────────────────────────────
   const [view,               setView]               = useLocalStorage('gylfa-view',  'home');
@@ -240,17 +244,20 @@ export default function App() {
   if (user === undefined || loadingFamily) {
     return (
       <div className="app-loading">
-        <div className="app-loading-rune">᛭</div>
-        <p>Hleður…</p>
+        <div className="app-loading-rune">&#x16ED;</div>
+        <p>Hledur...</p>
       </div>
     );
   }
 
-  // ── Innskráning ───────────────────────────────────────────────
-  if (!user) return <LoginPage />;
+  // ── Barnagatt (deililinkur) ─────────────────────────────────
+  if (isChildMode && !childMode.reader) return <ChildGate />;
 
-  // ── Fyrsta skipti — stofna fjölskyldu ────────────────────────
-  if (!family) return <FamilySetup />;
+  // ── Innskraning ───────────────────────────────────────────────
+  if (!user && !isChildMode) return <LoginPage />;
+
+  // ── Fyrsta skipti - stofna fjolskyldu ────────────────────────
+  if (!family && !isChildMode) return <FamilySetup />;
 
   // ── Heimasíða ─────────────────────────────────────────────────
   if (view === 'home') {
