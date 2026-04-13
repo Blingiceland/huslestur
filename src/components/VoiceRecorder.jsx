@@ -1,20 +1,27 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { storage, db } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
 
-const STATES = { IDLE: 'idle', COUNTDOWN: 'countdown', RECORDING: 'recording', DONE: 'done' };
+const STATES = { IDLE: 'idle', COUNTDOWN: 'countdown', RECORDING: 'recording', UPLOADING: 'uploading', DONE: 'done' };
 
-export default function VoiceRecorder({ chapterTitle, compact = false }) {
-  const [state, setState] = useState(STATES.IDLE);
+export default function VoiceRecorder({ chapterTitle, readers = [], compact = false }) {
+  const { user } = useAuth();
+  const [state, setState]       = useState(STATES.IDLE);
   const [countdown, setCountdown] = useState(3);
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsed, setElapsed]   = useState(0);
   const [audioUrl, setAudioUrl] = useState(null);
-  const [error, setError] = useState(null);
-  const [open, setOpen] = useState(false);
+  const [error, setError]       = useState(null);
+  const [open, setOpen]         = useState(false);
+  const [reader, setReader]     = useState(readers[0] || '');
+  const [uploadedUrl, setUploadedUrl] = useState(null);
 
   const mediaRecorder = useRef(null);
-  const chunks = useRef([]);
-  const timerRef = useRef(null);
-  const streamRef = useRef(null);
-  const audioRef = useRef(null);
+  const chunks        = useRef([]);
+  const timerRef      = useRef(null);
+  const streamRef     = useRef(null);
+  const audioRef      = useRef(null);
 
   useEffect(() => () => {
     clearInterval(timerRef.current);
@@ -25,6 +32,7 @@ export default function VoiceRecorder({ chapterTitle, compact = false }) {
   const startCountdown = useCallback(async () => {
     setError(null);
     setAudioUrl(null);
+    setUploadedUrl(null);
     setElapsed(0);
     setCountdown(3);
     setState(STATES.COUNTDOWN);
@@ -52,6 +60,8 @@ export default function VoiceRecorder({ chapterTitle, compact = false }) {
       setAudioUrl(URL.createObjectURL(blob));
       setState(STATES.DONE);
       stream.getTracks().forEach(t => t.stop());
+      // Upphala sjálfkrafa
+      uploadRecording(blob);
     };
     mr.start(100);
     mediaRecorder.current = mr;
@@ -60,29 +70,53 @@ export default function VoiceRecorder({ chapterTitle, compact = false }) {
     timerRef.current = setInterval(() => { secs++; setElapsed(secs); }, 1000);
   }
 
+  async function uploadRecording(blob) {
+    if (!user) return;
+    setState(STATES.UPLOADING);
+    try {
+      const ext  = getSupportedMime().includes('ogg') ? 'ogg' : 'webm';
+      const safe = (chapterTitle || 'kafli').replace(/[^\w\s]/g, '').trim().replace(/\s+/g, '-');
+      const ts   = Date.now();
+      const path = `families/${user.uid}/recordings/${safe}-${ts}.${ext}`;
+
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, blob);
+      const url = await getDownloadURL(storageRef);
+      setUploadedUrl(url);
+
+      // Vista lýsigögn í Firestore
+      await addDoc(collection(db, 'families', user.uid, 'recordings'), {
+        chapterTitle,
+        reader:    reader || 'Nafnlaust',
+        url,
+        path,
+        duration:  elapsed,
+        status:    'pending',   // 'pending' | 'approved' | 'needs_work'
+        createdAt: serverTimestamp(),
+      });
+
+      setState(STATES.DONE);
+    } catch (e) {
+      console.error(e);
+      setError('Upphal mistókst. Reyndu aftur.');
+      setState(STATES.DONE);
+    }
+  }
+
   function stopRecording() {
     clearInterval(timerRef.current);
     mediaRecorder.current?.stop();
   }
 
-  function handleDownload() {
-    const ext = getSupportedMime().includes('ogg') ? 'ogg' : 'webm';
-    const safe = (chapterTitle || 'kafli').replace(/[^\w\s]/g, '').trim().replace(/\s+/g, '-');
-    const a = document.createElement('a');
-    a.href = audioUrl;
-    a.download = `Lestur-${safe}.${ext}`;
-    a.click();
-  }
-
   function reset() {
     setAudioUrl(null);
+    setUploadedUrl(null);
     setElapsed(0);
     setState(STATES.IDLE);
   }
 
   const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  // Compact mode: just a pill button in the dashboard, panel renders below dashboard
   if (!open) {
     return compact ? (
       <button className="recorder-compact-btn" onClick={() => setOpen(true)}>
@@ -97,14 +131,33 @@ export default function VoiceRecorder({ chapterTitle, compact = false }) {
     );
   }
 
-  // When open — panel renders in place (in dashboard row if compact, standalone if not)
-  const panel = (
+  return (
     <div className={compact ? 'recorder-panel recorder-panel--inline' : 'recorder-panel'}>
       <div className="recorder-header">
         <span className="recorder-title">🎙️ Lesturupptaka</span>
         <button className="recorder-close" onClick={() => { setOpen(false); reset(); }}>✕</button>
       </div>
+
       <p className="recorder-chapter-name">„{chapterTitle}"</p>
+
+      {/* Lesandaval */}
+      {readers.length > 0 && state === STATES.IDLE && (
+        <div className="recorder-reader-pick">
+          <span className="recorder-reader-label">Hver er að lesa?</span>
+          <div className="recorder-reader-btns">
+            {readers.map(r => (
+              <button
+                key={r}
+                className={`family-who-btn ${reader === r ? 'active' : ''}`}
+                onClick={() => setReader(r)}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {error && <p className="recorder-error">{error}</p>}
 
       {state === STATES.IDLE && (
@@ -129,21 +182,27 @@ export default function VoiceRecorder({ chapterTitle, compact = false }) {
           <button className="recorder-stop-btn" onClick={stopRecording}>⏹ Hætta</button>
         </div>
       )}
+      {state === STATES.UPLOADING && (
+        <div className="recorder-uploading">
+          <div className="recorder-upload-spinner">⬆️</div>
+          <p>Hleð upp upptöku...</p>
+        </div>
+      )}
       {state === STATES.DONE && audioUrl && (
         <div className="recorder-done">
           <div className="recorder-success-icon">🌟</div>
-          <p className="recorder-done-msg">Glæsileg lesning! Hlustið á ykkur:</p>
+          {uploadedUrl
+            ? <p className="recorder-done-msg">Glæsileg lesning! Foreldri þitt getur nú hlustað. 🎉</p>
+            : <p className="recorder-done-msg">Glæsileg lesning! Hlustið á ykkur:</p>
+          }
           <audio ref={audioRef} src={audioUrl} controls className="recorder-audio" />
           <div className="recorder-actions">
-            <button className="recorder-download-btn" onClick={handleDownload}>⬇️ Vista á tölvuna</button>
             <button className="recorder-again-btn" onClick={reset}>🔄 Taka upp aftur</button>
           </div>
         </div>
       )}
     </div>
   );
-
-  return panel;
 }
 
 function getSupportedMime() {

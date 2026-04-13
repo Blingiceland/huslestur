@@ -55,6 +55,7 @@ export default function ReadingDashboard({
   readStatus,
   activeBook,
   currentChapterTitle,
+  readers = [],
 }) {
   const totalChapters = chapters.length;
   const readCount = Object.values(readStatus).filter(Boolean).length;
@@ -120,8 +121,8 @@ export default function ReadingDashboard({
           )}
         </div>
 
-        {/* Record button — compact in dashboard */}
-        <VoiceRecorder chapterTitle={currentChapterTitle} compact />
+        {/* Taka upp — lesandaval fylgir með */}
+        <VoiceRecorder chapterTitle={currentChapterTitle} readers={readers} compact />
 
         {/* Streak */}
         <div className="rdash-streak">

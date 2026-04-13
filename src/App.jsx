@@ -1,5 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { useAuth } from './contexts/AuthContext';
+import { useFamily } from './contexts/FamilyContext';
+
+import LoginPage from './components/LoginPage';
+import FamilySetup from './components/FamilySetup';
 import LandingPage from './components/LandingPage';
 import CategoryPicker from './components/CategoryPicker';
 import Sidebar from './components/Sidebar';
@@ -7,10 +12,12 @@ import Reader from './components/Reader';
 import ReadingDashboard from './components/ReadingDashboard';
 import NotesPanel from './components/NotesPanel';
 import ReadersSetup from './components/ReadersSetup';
+import ParentPanel from './components/ParentPanel';
+
 import gylfData from './chapters.json';
 import './index.css';
 
-// Load þjóðsögur lazily
+// ── Þjóðsögur hleðst seint ──────────────────────────────────────
 let thjodCache = null;
 async function loadThjodsogar() {
   if (!thjodCache) {
@@ -21,27 +28,70 @@ async function loadThjodsogar() {
 }
 
 export default function App() {
-  // view: 'home' | 'categories' | 'reader'
-  const [view,         setView]         = useLocalStorage('gylfa-view',  'home');
-  const [activeBook,   setActiveBook]   = useLocalStorage('gylfa-book',  'gylfaginning');
-  const [activeCategory, setActiveCategory] = useState(null); // slug string
+  const { user } = useAuth();
+  const {
+    family, loadingFamily,
+    getProgress, setReadStatus: saveReadStatus,
+    getNotes, saveNotes,
+    getQna, saveQna,
+    getAnnotations, saveAnnotations,
+  } = useFamily();
 
-  const [chapters,     setChapters]     = useState(gylfData);
-  const [thjodCategories, setThjodCategories] = useState([]);
-
+  // ── Skoðun og bók ────────────────────────────────────────────
+  const [view,               setView]               = useLocalStorage('gylfa-view',  'home');
+  const [activeBook,         setActiveBook]         = useLocalStorage('gylfa-book',  'gylfaginning');
+  const [activeCategory,     setActiveCategory]     = useState(null);
+  const [chapters,           setChapters]           = useState(gylfData);
+  const [thjodCategories,    setThjodCategories]    = useState([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useLocalStorage('gylfa-kafli', 0);
-  const [readStatus,   setReadStatus]   = useLocalStorage('gylfa-lesid',        {});
-  const [notesDict,    setNotesDict]    = useLocalStorage('gylfa-glosur',       {});
-  const [qnaDict,      setQnaDict]      = useLocalStorage('gylfa-spurningar',   {});
-  const [familyDict,   setFamilyDict]   = useLocalStorage('gylfa-vidsegjum',    {});
-  const [readers,      setReaders]      = useLocalStorage('gylfa-readers',      []);
-  const [theme,        setTheme]        = useLocalStorage('gylfa-theme',        'light');
+
+  // ── Gögn — local UI state (samstillt við Firestore) ──────────
+  const [readStatus,  setReadStatusState]  = useState({});
+  const [notesDict,   setNotesDictState]   = useState({});
+  const [qnaDict,     setQnaDictState]     = useState({});
+  const [familyDict,  setFamilyDictState]  = useState({});
+
+  // Þátttakendur (nöfn barna) koma úr fjölskyldunni eða localStorage
+  const [readers,     setReaders]     = useLocalStorage('gylfa-readers', []);
+  const [theme,       setTheme]       = useLocalStorage('gylfa-theme',   'light');
 
   const [readingMode,  setReadingMode]  = useState(false);
   const [annotateMode, setAnnotateMode] = useState(false);
   const [sidebarOpen,  setSidebarOpen]  = useState(window.innerWidth > 1024);
   const [notesOpen,    setNotesOpen]    = useState(false);
   const [readersOpen,  setReadersOpen]  = useState(false);
+  const [parentOpen,   setParentOpen]   = useState(false);
+  const [dataLoaded,   setDataLoaded]   = useState(false);
+
+  // Þegar fjölskylda er til, nota nöfn hennar sem þátttakendur
+  useEffect(() => {
+    if (family?.members?.length > 0) {
+      setReaders(family.members);
+    }
+  }, [family]);
+
+  // Hlaða gögnum þegar bók opnast
+  const loadBookData = useCallback(async (bookId) => {
+    if (!user) return;
+    setDataLoaded(false);
+    const [rs, nd, qd, fd] = await Promise.all([
+      getProgress(bookId),
+      getNotes(bookId),
+      getQna(bookId),
+      getAnnotations(bookId),
+    ]);
+    setReadStatusState(rs);
+    setNotesDictState(nd);
+    setQnaDictState(qd);
+    setFamilyDictState(fd);
+    setDataLoaded(true);
+  }, [user, getProgress, getNotes, getQna, getAnnotations]);
+
+  useEffect(() => {
+    if (view === 'reader' && activeBook) {
+      loadBookData(activeBook);
+    }
+  }, [view, activeBook, loadBookData]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -55,14 +105,47 @@ export default function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ── Book opening ───────────────────────────────────────────────
+  // ── Wrapper-föll sem vista bæði local og í Firestore ────────
+
+  const handleSetReadStatus = useCallback((updater) => {
+    setReadStatusState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      saveReadStatus(activeBook, next);
+      return next;
+    });
+  }, [activeBook, saveReadStatus]);
+
+  const handleSetNotesDict = useCallback((updater) => {
+    setNotesDictState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      saveNotes(activeBook, next);
+      return next;
+    });
+  }, [activeBook, saveNotes]);
+
+  const handleSetQnaDict = useCallback((updater) => {
+    setQnaDictState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      saveQna(activeBook, next);
+      return next;
+    });
+  }, [activeBook, saveQna]);
+
+  const handleSetFamilyDict = useCallback((updater) => {
+    setFamilyDictState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      saveAnnotations(activeBook, next);
+      return next;
+    });
+  }, [activeBook, saveAnnotations]);
+
+  // ── Bók opnast ───────────────────────────────────────────────
   const openBook = async (bookId) => {
     setActiveBook(bookId);
     setAnnotateMode(false);
     setReadingMode(false);
 
     if (bookId === 'thjodsogar') {
-      // Load categories and show picker first
       const data = await loadThjodsogar();
       setThjodCategories(data);
       setView('categories');
@@ -78,19 +161,15 @@ export default function App() {
       setView('reader');
     } else if (bookId === 'dmyrk' || bookId === 'gilitr' || bookId === 'saemi') {
       const data = await loadThjodsogar();
-      // dmyrk -> draugar, gilitr -> troll, saemi -> galdrar
       let slug = 'draugar';
       if (bookId === 'gilitr') slug = 'troll';
       if (bookId === 'saemi') slug = 'galdrar';
-      
       const category = data.find(c => c.slug === slug);
       const story = category.stories.find(s => s.id === bookId);
-      
       setChapters([story]);
       setCurrentChapterIndex(0);
       setView('reader');
     } else {
-      // Gylfaginning — go straight to reader
       setChapters(gylfData);
       setCurrentChapterIndex(0);
       setView('reader');
@@ -103,15 +182,16 @@ export default function App() {
     setActiveCategory(cat);
     setChapters(cat.stories.map((s, i) => ({
       number: i + 1,
-      title:  s.title,
+      title: s.title,
       paragraphs: s.paragraphs,
     })));
     setCurrentChapterIndex(0);
     setView('reader');
   };
 
-  // ── Helpers ────────────────────────────────────────────────────
-  const toggleReadStatus = (idx) => setReadStatus(prev => ({ ...prev, [idx]: !prev[idx] }));
+  // ── Hjálparföll ──────────────────────────────────────────────
+  const toggleReadStatus = (idx) =>
+    handleSetReadStatus(prev => ({ ...prev, [idx]: !prev[idx] }));
 
   const cycleTheme = () => {
     const themes = ['light', 'sepia', 'dark'];
@@ -134,7 +214,7 @@ export default function App() {
   };
 
   const handleAddFamilyEntry = (entry) => {
-    setFamilyDict(prev => ({
+    handleSetFamilyDict(prev => ({
       ...prev,
       [currentChapterIndex]: [...(prev[currentChapterIndex] || []), { ...entry, id: Date.now() }],
     }));
@@ -147,20 +227,32 @@ export default function App() {
     Object.values(familyDict).reduce((s, a) => s + a.length, 0) +
     Object.values(qnaDict).reduce((s, a) => s + a.filter(q => !q.answer).length, 0);
 
-  // Sidebar display name
   const sidebarTitle =
     activeBook === 'thjodsogar' && activeCategory
       ? `${activeCategory.emoji} ${activeCategory.label}`
-      : activeBook === 'voluspa'
-      ? 'Völuspá'
-      : activeBook === 'havamal'
-      ? 'Hávamál'
+      : activeBook === 'voluspa' ? 'Völuspá'
+      : activeBook === 'havamal' ? 'Hávamál'
       : (activeBook === 'dmyrk' || activeBook === 'gilitr' || activeBook === 'saemi')
       ? 'Myndskreytt saga'
       : 'Gylfaginning';
 
-  // ── Views ──────────────────────────────────────────────────────
+  // ── Hleðsluhamur ─────────────────────────────────────────────
+  if (user === undefined || loadingFamily) {
+    return (
+      <div className="app-loading">
+        <div className="app-loading-rune">᛭</div>
+        <p>Hleður…</p>
+      </div>
+    );
+  }
 
+  // ── Innskráning ───────────────────────────────────────────────
+  if (!user) return <LoginPage />;
+
+  // ── Fyrsta skipti — stofna fjölskyldu ────────────────────────
+  if (!family) return <FamilySetup />;
+
+  // ── Heimasíða ─────────────────────────────────────────────────
   if (view === 'home') {
     return (
       <>
@@ -171,6 +263,7 @@ export default function App() {
           readers={readers}
           setReaders={setReaders}
           onOpenBook={openBook}
+          family={family}
         />
       </>
     );
@@ -191,7 +284,7 @@ export default function App() {
     );
   }
 
-  // ── Reader view ───────────────────────────────────────────────
+  // ── Lesarinn ──────────────────────────────────────────────────
   return (
     <div className={`app-container ${readingMode ? 'reading-mode' : ''}`}>
       <Sidebar
@@ -224,6 +317,9 @@ export default function App() {
           </div>
           <div className="toolbar-group">
             <button onClick={cycleTheme}>{themeLabel}</button>
+            <button onClick={() => setParentOpen(true)} className="readers-btn" title="Foreldragluggi">
+              🎧 Hlusta
+            </button>
             <button onClick={() => setReadersOpen(true)} className="readers-btn">
               👥 {readers.length > 0 ? readers.join(', ') : 'Þátttakendur'}
             </button>
@@ -254,6 +350,7 @@ export default function App() {
           readStatus={readStatus}
           activeBook={activeBook}
           currentChapterTitle={chapters[currentChapterIndex]?.title ?? ''}
+          readers={readers}
         />
 
         <Reader
@@ -272,11 +369,11 @@ export default function App() {
       <NotesPanel
         currentChapterIndex={currentChapterIndex}
         notesDict={notesDict}
-        setNotesDict={setNotesDict}
+        setNotesDict={handleSetNotesDict}
         qnaDict={qnaDict}
-        setQnaDict={setQnaDict}
+        setQnaDict={handleSetQnaDict}
         familyDict={familyDict}
-        setFamilyDict={setFamilyDict}
+        setFamilyDict={handleSetFamilyDict}
         readers={readers}
         isOpen={notesOpen && !readingMode}
       />
@@ -288,6 +385,8 @@ export default function App() {
           onClose={() => setReadersOpen(false)}
         />
       )}
+
+      <ParentPanel isOpen={parentOpen} onClose={() => setParentOpen(false)} />
     </div>
   );
 }

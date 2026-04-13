@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 const BOOKS = [
   {
@@ -78,9 +79,10 @@ function avatarColor(name) {
   return AVATAR_COLORS[sum % AVATAR_COLORS.length];
 }
 
-export default function LandingPage({ readers, setReaders, onOpenBook }) {
+export default function LandingPage({ readers, setReaders, onOpenBook, family }) {
   const [newName, setNewName] = useState('');
   const inputRef = useRef(null);
+  const { logOut } = useAuth();
 
   const addReader = () => {
     const name = newName.trim();
@@ -102,12 +104,19 @@ export default function LandingPage({ readers, setReaders, onOpenBook }) {
       <header className="landing-hero">
         <div className="landing-hero-inner">
           <div className="landing-rune">᛭</div>
-          <h1 className="landing-title">Lestrarsalan</h1>
+          <h1 className="landing-title">Lestrarsalurinn</h1>
           <p className="landing-tagline">Lesið saman, spyrjið saman, finnið saman.</p>
         </div>
       </header>
 
       <main className="landing-main">
+        {/* Fjölskyldubanner */}
+        {family && (
+          <div className="landing-family-banner">
+            <span className="landing-family-name">🏠 {family.name}</span>
+            <button className="landing-logout-btn" onClick={logOut}>Skrá út</button>
+          </div>
+        )}
         {/* Participants */}
         <section className="landing-section">
           <h2 className="landing-section-title">Hverjir eru að lesa í dag?</h2>
