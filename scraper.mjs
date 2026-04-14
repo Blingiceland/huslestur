@@ -4,22 +4,9 @@ import fs from 'fs';
 import path from 'path';
 
 const INDEXES = [
-  { url: 'https://www.snerpa.is/net/thjod/aevin.htm', category: 'Íslensk ævintýri', base: 'https://www.snerpa.is/net/thjod/' },
-  { url: 'https://www.snerpa.is/net/thjod/hans.htm', category: 'H.C. Andersen', base: 'https://www.snerpa.is/net/thjod/' },
-  { url: 'https://www.snerpa.is/net/thjod/alfa.htm', category: 'Huldufólk & Álfar', base: 'https://www.snerpa.is/net/thjod/' },
-  { url: 'https://www.snerpa.is/net/thjod/saga.htm', category: 'Sögur af sögulegum atburðum', base: 'https://www.snerpa.is/net/thjod/' },
-  { url: 'https://www.snerpa.is/net/thjod/kima.htm', category: 'Kímnisögur', base: 'https://www.snerpa.is/net/thjod/' },
-  { url: 'https://www.snerpa.is/net/thjod/nyr.htm', category: 'Nýrri þjóðsögur', base: 'https://www.snerpa.is/net/thjod/' },
-  { url: 'https://www.snerpa.is/net/thjod/draug.htm', category: 'Draugasögur', base: 'https://www.snerpa.is/net/thjod/' },
-  { url: 'https://www.snerpa.is/net/thjod/gald.htm', category: 'Galdrasögur', base: 'https://www.snerpa.is/net/thjod/' },
-  { url: 'https://www.snerpa.is/net/thjod/natt.htm', category: 'Náttúrusögur', base: 'https://www.snerpa.is/net/thjod/' },
-  { url: 'https://www.snerpa.is/net/thjod/tru.htm', category: 'Trúarsögur', base: 'https://www.snerpa.is/net/thjod/' },
-  { url: 'https://www.snerpa.is/net/fornrit.htm', category: 'Fornrit', base: 'https://www.snerpa.is/net/' },
-  { url: 'https://www.snerpa.is/net/kv.htm', category: 'Kvæði', base: 'https://www.snerpa.is/net/' },
-  { url: 'https://www.snerpa.is/net/roman/roman.htm', category: 'Skáldsögur', base: 'https://www.snerpa.is/net/roman/' },
-  { url: 'https://www.snerpa.is/net/sma/sma.htm', category: 'Smásögur', base: 'https://www.snerpa.is/net/sma/' },
-  { url: 'https://www.snerpa.is/net/1001/1001.htm', category: 'Þúsund og ein nótt', base: 'https://www.snerpa.is/net/1001/' },
+  { url: 'https://www.snerpa.is/net/isl/isl.htm', category: 'Íslendingasögur', base: 'https://www.snerpa.is/net/isl/' },
 ];
+
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -95,28 +82,60 @@ async function scrapeStory(storyInfo) {
   // Hreinsum HTMLið
   const paragraphs = [];
   if (contentHtml) {
-      const $content = cheerio.load(contentHtml);
-      // Brjóta niður á <p> eða <br><br>
+    const $content = cheerio.load(contentHtml);
+
+    // 1. Prófum fyrst <p> tög (Íslendingasögur nota þetta)
+    $content('p').each((i, el) => {
+      const text = $content(el).text().trim().replace(/\n/g, ' ').replace(/\s{2,}/g, ' ');
+      if (text && text.length > 20) paragraphs.push(text);
+    });
+
+    // 2. Ef engar <p> tög, reynum text nodes beint
+    if (paragraphs.length === 0) {
       $content('body').contents().each((i, el) => {
-          if (el.type === 'text') {
-              const text = $(el).text().trim().replace(/\n/g, ' ').replace(/\s{2,}/g, ' ');
-              if (text) {
-                  paragraphs.push(text);
-              }
-          } else if (el.tagName === 'p') {
-              const text = $(el).text().trim().replace(/\n/g, ' ').replace(/\s{2,}/g, ' ');
-              if (text) paragraphs.push(text);
-          }
+        if (el.type === 'text') {
+          const text = $content(el).text().trim().replace(/\n/g, ' ').replace(/\s{2,}/g, ' ');
+          if (text && text.length > 20) paragraphs.push(text);
+        }
       });
-      // Ef ofangreint skilar tómu grípum við allt
-      if (paragraphs.length === 0) {
-         let raw = $content.text().replace(/\n\s+/g, '\n').split('\n\n');
-         raw.forEach(p => {
-             const t = p.trim().replace(/\n/g, ' ');
-             if(t) paragraphs.push(t);
-         });
-      }
+    }
+
+    // 3. Fallback: skipta öllu texta á \n\n
+    if (paragraphs.length === 0) {
+      const raw = $content.text().replace(/\n\s+/g, '\n').split('\n\n');
+      raw.forEach(p => {
+        const t = p.trim().replace(/\n/g, ' ').replace(/\s{2,}/g, ' ');
+        if (t && t.length > 20) paragraphs.push(t);
+      });
+    }
   }
+
+  // Post-processing: ef bara 1 löng málsgrein, skiptum á kafla-númerum eða \n
+  if (paragraphs.length === 1 && paragraphs[0].length > 500) {
+    const raw = paragraphs[0];
+    // Skiptum á kaflanúmerum eins og "2. Þess er getið" osfrv.
+    const chapterSplit = raw.split(/(?=\s\d{1,2}\.\s[A-ZÁÉÍÓÚÝÐÞÆÖ])/);
+    if (chapterSplit.length > 2) {
+      paragraphs.length = 0;
+      chapterSplit.forEach(chunk => {
+        const t = chunk.trim();
+        if (t.length > 20) paragraphs.push(t);
+      });
+    } else {
+      // Skiptum á hverjar ~1500 stafir við punkta
+      paragraphs.length = 0;
+      let remaining = raw;
+      while (remaining.length > 1800) {
+        let cutAt = remaining.lastIndexOf('. ', 1800);
+        if (cutAt < 500) cutAt = remaining.lastIndexOf(' ', 1800);
+        if (cutAt < 0) cutAt = 1800;
+        paragraphs.push(remaining.slice(0, cutAt + 1).trim());
+        remaining = remaining.slice(cutAt + 1).trim();
+      }
+      if (remaining.length > 20) paragraphs.push(remaining);
+    }
+  }
+
 
   const result = {
       title: docTitle,

@@ -112,6 +112,12 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  // Reset to home if no user (prevents stale localStorage view)
+  useEffect(() => {
+    if (!user && view !== 'home') setView('home');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth <= 768) { setSidebarOpen(false); setNotesOpen(false); }
@@ -279,11 +285,8 @@ export default function App() {
   // ── Barnagatt (deililinkur) ─────────────────────────────────
   if (isChildMode && !childMode.reader) return <ChildGate />;
 
-  // ── Innskraning ───────────────────────────────────────────────
-  if (!user && !isChildMode) return <LoginPage />;
-
-  // ── Fyrsta skipti - stofna fjolskyldu ────────────────────────
-  if (!family && !isChildMode) return <FamilySetup />;
+  // ── Innskraning (valkvæð — forsíða er opin öllum) ───────────
+  // Skip login gate — the landing page and library are public
 
   // ── Heimasíða ─────────────────────────────────────────────────
   if (view === 'home') {

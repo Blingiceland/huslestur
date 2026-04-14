@@ -54,6 +54,12 @@ const ILLUSTRATED = [
   { id: 'saemi', title: 'Sæmundur fróði', cover: '/saemi-2.png', color: '#2e1a1a', accent: '#f87171' },
 ];
 
+const CATEGORY_IMAGES = {
+  'HC Andersen': '/hc-andersen-cover.png',
+  'Íslensk ævintýri': '/islensk-aevintiri-cover.png',
+  'Íslendingasögur': '/islendingasogur-cover.png',
+};
+
 // Flokkur glósur/litir
 const CAT_THEMES = [
   { color: '#1e1b4b', accent: '#818cf8', emoji: '📜' },
@@ -117,6 +123,9 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
     }).catch(() => prompt('Afritaðu linkinn:', link));
   };
 
+  const featuredCats = cloudCats.filter(c => CATEGORY_IMAGES[c.name]);
+  const otherCats = cloudCats.filter(c => !CATEGORY_IMAGES[c.name]);
+
   return (
     <div className="lp">
       {/* ── Top bar ── */}
@@ -144,7 +153,7 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
       <section className="lp-hero">
         <div className="lp-hero-content">
           <p className="lp-hero-eyebrow">Íslenskt bókasafn fyrir börn</p>
-          <h1 className="lp-hero-title">Lestu. Hlaustu. Dáðu þér.</h1>
+          <h1 className="lp-hero-title">Lesum saman.</h1>
           <p className="lp-hero-sub">Gylfaginning, Eddukvæði, Þjóðsögur og hundruð íslenzkra ævintýra — allt á einum stað.</p>
 
           {/* Readers */}
@@ -185,10 +194,13 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
       </section>
 
       <div className="lp-content">
-        {/* ── Featured books ── */}
+
+        {/* ══ BÓKASAFNIÐ — eitt sameinað safn ══ */}
         <section className="lp-section">
-          <h2 className="lp-section-title">Stærstu verkin</h2>
-          <div className="lp-featured-grid">
+          <h2 className="lp-section-title">Bókasafnið</h2>
+
+          {/* Horizontal scroll: Gylfaginning, Völuspá, Hávamál, Þjóðsögur */}
+          <div className="lp-books-row">
             {FEATURED_BOOKS.map(book => (
               <button
                 key={book.id}
@@ -212,9 +224,30 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
               </button>
             ))}
           </div>
+
+          {/* HC Andersen / Íslendingasögur / Íslenskar ævintýri */}
+          {featuredCats.length > 0 && (
+            <div className="lp-cloud-grid" style={{ marginTop: '20px' }}>
+              {featuredCats.map(({ name, count, theme }) => (
+                <button
+                  key={name}
+                  className="lp-cloud-card"
+                  style={{ '--card-accent': theme.accent }}
+                  onClick={() => onOpenBook('snerpa', null, name)}
+                >
+                  <img src={CATEGORY_IMAGES[name]} alt={name} className="lp-cloud-card-img" />
+                  <div className="lp-cloud-card-overlay">
+                    <span className="lp-cloud-card-subtitle">Bókasafn</span>
+                    <span className="lp-cloud-card-title">{name}</span>
+                    <span className="lp-cloud-card-count" style={{ color: theme.accent }}>{count} sögur →</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* ── Illustrated ── */}
+        {/* ── Myndskreyttar sögur — neðst ── */}
         <section className="lp-section">
           <h2 className="lp-section-title">Myndskreyttar sögur</h2>
           <div className="lp-illus-grid">
@@ -235,28 +268,9 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
           </div>
         </section>
 
-        {/* ── Cloud categories ── */}
-        {cloudCats.length > 0 && (
-          <section className="lp-section">
-            <h2 className="lp-section-title">Stóra Bókasafnið</h2>
-            <p className="lp-section-sub">Hundruð sagna — veldu flokk til að byrja</p>
-            <div className="lp-cat-grid">
-              {cloudCats.map(({ name, count, theme }) => (
-                <button
-                  key={name}
-                  className="lp-ccard"
-                  style={{ '--card-bg': theme.color, '--card-accent': theme.accent }}
-                  onClick={() => onOpenBook('snerpa', null, name)}
-                >
-                  <span className="lp-ccard-emoji">{theme.emoji}</span>
-                  <span className="lp-ccard-name">{name}</span>
-                  <span className="lp-ccard-count">{count} sögur</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
+
+
 
       <footer className="lp-footer">
         Lestrarsalurinn · Byggt á Snerpu-gagnagrunni · Íslenska bókmenntaarfleifð
