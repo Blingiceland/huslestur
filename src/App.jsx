@@ -37,9 +37,18 @@ export default function App() {
     getQna, saveQna,
     getAnnotations, saveAnnotations,
     childMode, getShareLink,
+    targetRoute, setTargetRoute,
   } = useFamily();
 
   const isChildMode = !!childMode;
+
+  useEffect(() => {
+    if (isChildMode && childMode?.reader && targetRoute) {
+      openBook(targetRoute.bookId, targetRoute.chapterIndex);
+      setTargetRoute(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isChildMode, childMode, targetRoute]);
 
   // ── Skoðun og bók ────────────────────────────────────────────
   const [view,               setView]               = useLocalStorage('gylfa-view',  'home');
@@ -144,7 +153,7 @@ export default function App() {
   }, [activeBook, saveAnnotations]);
 
   // ── Bók opnast ───────────────────────────────────────────────
-  const openBook = async (bookId) => {
+  const openBook = async (bookId, startingChapterIndex = 0) => {
     setActiveBook(bookId);
     setAnnotateMode(false);
     setReadingMode(false);
@@ -156,12 +165,12 @@ export default function App() {
     } else if (bookId === 'voluspa') {
       const mod = await import('./voluspa.json');
       setChapters(mod.default);
-      setCurrentChapterIndex(0);
+      setCurrentChapterIndex(startingChapterIndex);
       setView('reader');
     } else if (bookId === 'havamal') {
       const mod = await import('./havamal.json');
       setChapters(mod.default);
-      setCurrentChapterIndex(0);
+      setCurrentChapterIndex(startingChapterIndex);
       setView('reader');
     } else if (bookId === 'dmyrk' || bookId === 'gilitr' || bookId === 'saemi') {
       const data = await loadThjodsogar();
@@ -171,11 +180,11 @@ export default function App() {
       const category = data.find(c => c.slug === slug);
       const story = category.stories.find(s => s.id === bookId);
       setChapters([story]);
-      setCurrentChapterIndex(0);
+      setCurrentChapterIndex(startingChapterIndex);
       setView('reader');
     } else {
       setChapters(gylfData);
-      setCurrentChapterIndex(0);
+      setCurrentChapterIndex(startingChapterIndex);
       setView('reader');
     }
   };

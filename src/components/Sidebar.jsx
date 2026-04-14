@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useFamily } from '../contexts/FamilyContext';
 
 export default function Sidebar({
   chapters,
@@ -11,6 +12,8 @@ export default function Sidebar({
   sidebarTitle,
 }) {
   const [search, setSearch] = useState('');
+  const { family, getShareLink, isChildMode } = useFamily();
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const filtered = chapters
     .map((ch, idx) => ({ ...ch, idx }))
@@ -29,6 +32,16 @@ export default function Sidebar({
   const title = sidebarTitle || (isFolkTales ? 'Íslenskar þjóðsögur' : isVoluspa ? 'Völuspá' : isHavamal ? 'Hávamál' : 'Gylfaginning');
   const unit = isFolkTales ? 'sögur' : isEdda ? 'hlutar' : 'kaflar';
   const unitRead = isFolkTales ? 'sögur lesnar' : isEdda ? 'hlutar lesnir' : 'kaflar lesnir';
+
+  const handleCopyLink = (e, book, idx) => {
+    e.stopPropagation();
+    const url = getShareLink(book, idx);
+    if (url) {
+       navigator.clipboard.writeText(url);
+       setCopiedLink(true);
+       setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
 
   return (
     <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
@@ -62,8 +75,18 @@ export default function Sidebar({
                 if (window.innerWidth <= 768) toggleSidebar();
               }}
             >
-              <span>{title}</span>
-              {isRead && <span className="read-badge">✓</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span>{title} {isRead && '✅'}</span>
+                {isActive && family && !isChildMode && (
+                  <button 
+                    onClick={(e) => handleCopyLink(e, activeBook, idx)}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontSize: '0.8rem', padding: '0 5px' }}
+                    title="Afrita tengil á þennan kafla handa barni"
+                  >
+                    {copiedLink ? '✓ Afritað' : '🔗 Deila'}
+                  </button>
+                )}
+              </div>
             </li>
           );
         })}

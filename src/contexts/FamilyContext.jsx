@@ -35,13 +35,19 @@ export function FamilyProvider({ children }) {
   const [loadingFamily, setLoadingFamily] = useState(true);
   const [childMode,     setChildMode]     = useState(null);   // { uid, reader } ef barn er innskrad
   const [familyUid,     setFamilyUid]     = useState(null);   // uid sem er i notkun (foreldri eda barn)
+  const [targetRoute,   setTargetRoute]   = useState(null);
 
-  // Ef barn opnar /lesa/XXXXXX link
+  // Ef barn opnar /lesa/XXXXXX eða /lesa/XXXXXX/bók/kafli link
   useEffect(() => {
     const path = window.location.pathname;
-    const match = path.match(/^\/lesa\/([A-Z0-9]{6})$/i);
+    const match = path.match(/^\/lesa\/([A-Z0-9]{6})(?:\/([^/]+))?(?:\/(\d+))?$/i);
+    
     if (match) {
       const code = match[1].toUpperCase();
+      if (match[2]) {
+        setTargetRoute({ bookId: match[2], chapterIndex: match[3] ? parseInt(match[3], 10) : 0 });
+      }
+
       // Fletta upp shareCode
       getDoc(doc(db, 'shares', code)).then(snap => {
         if (snap.exists()) {
@@ -51,7 +57,7 @@ export function FamilyProvider({ children }) {
           getDoc(doc(db, 'families', parentUid)).then(fSnap => {
             if (fSnap.exists()) {
               setFamily(fSnap.data());
-              setChildMode({ uid: parentUid, reader: null });
+              setChildMode({ uid: parentUid, reader: null, shareCode: code });
             }
             setLoadingFamily(false);
           });
@@ -158,11 +164,16 @@ export function FamilyProvider({ children }) {
     if (childMode) setChildMode({ ...childMode, reader: name });
   };
 
-  // Fa share link
-  const getShareLink = () => {
+  // Fa share link (med valkvaemum bok/kafla)
+  const getShareLink = (bookId = null, chapterIndex = null) => {
     if (!family?.shareCode) return null;
     const origin = window.location.origin;
-    return `${origin}/lesa/${family.shareCode}`;
+    let url = `${origin}/lesa/${family.shareCode}`;
+    if (bookId) {
+      url += `/${bookId}`;
+      if (chapterIndex !== null) url += `/${chapterIndex}`;
+    }
+    return url;
   };
 
   return (
@@ -173,6 +184,7 @@ export function FamilyProvider({ children }) {
       getQna, saveQna,
       getAnnotations, saveAnnotations,
       childMode, pickChildReader, getShareLink,
+      targetRoute, setTargetRoute,
     }}>
       {children}
     </FamilyContext.Provider>
