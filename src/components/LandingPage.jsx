@@ -1,5 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { db } from '../firebase';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
 const BOOKS = [
   {
@@ -49,16 +51,6 @@ const BOOKS = [
     available: true,
   },
   {
-    id: 'snerpa',
-    title: 'Stóra Bókasafnið',
-    subtitle: 'Öll ævintýrin, þjóðsögurnar o.fl.',
-    description: 'Aðgangur að þúsundum sagna: H.C. Andersen, Íslendingasögur, Gríms ævintýri og margt fleira.',
-    coverEmoji: '📚',
-    chapters: 400,
-    available: true,
-    ctaLabel: 'Kikja í hilluna →',
-  },
-  {
     id: 'gilitr',
     title: 'Gilitrutt',
     subtitle: 'Myndskreytt þjóðsaga',
@@ -93,6 +85,33 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
   const [newName, setNewName] = useState('');
   const inputRef = useRef(null);
   const { logOut } = useAuth();
+  const [cloudCats, setCloudCats] = useState([]);
+
+  useEffect(() => {
+    // Sækja alla flokkana úr Firebase library
+    getDocs(collection(db, 'library')).then(snap => {
+      const cats = {};
+      snap.forEach(doc => {
+         const cat = doc.data().category || 'Annað';
+         cats[cat] = (cats[cat] || 0) + 1;
+      });
+      // Búa til bókahillu færslur úr þessum flokkum
+      const sortedKeys = Object.keys(cats).sort();
+      const catArray = sortedKeys.map(name => ({
+         id: `cloud_idx_${name}`,
+         title: name,
+         subtitle: 'Snerpu safnið',
+         description: `Bókasafn með ${cats[name]} sögum úr þessum flokki.`,
+         coverEmoji: '📁',
+         chapters: cats[name],
+         available: true,
+         isCloudAction: true,
+         cloudCategory: name,
+         ctaLabel: 'Skoða safnið →'
+      }));
+      setCloudCats(catArray);
+    });
+  }, []);
 
   const addReader = () => {
     const name = newName.trim();
@@ -226,7 +245,7 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
                   )}
                 </div>
 
-                {book.available && (
+                 {book.available && (
                   <button
                     className="landing-start-btn"
                     onClick={() => onOpenBook(book.id)}
@@ -238,6 +257,35 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
             ))}
           </div>
         </section>
+
+        {cloudCats.length > 0 && (
+          <section className="landing-section">
+            <h2 className="landing-section-title">Stóra Bókasafnið</h2>
+            <div className="landing-shelf">
+              {cloudCats.map(book => (
+                <div key={book.id} className="landing-book-card">
+                  <div className="landing-book-cover">
+                    <div className="landing-book-cover-placeholder">
+                      <span>{book.coverEmoji}</span>
+                    </div>
+                  </div>
+                  <div className="landing-book-info">
+                    <h3 className="landing-book-title">{book.title}</h3>
+                    <p className="landing-book-subtitle">{book.subtitle}</p>
+                    <p className="landing-book-desc">{book.description}</p>
+                    <div className="landing-book-meta">{book.chapters} sögur</div>
+                  </div>
+                  <button
+                    className="landing-start-btn"
+                    onClick={() => onOpenBook('snerpa', null, book.cloudCategory)}
+                  >
+                    {book.ctaLabel}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Illustrated stories */}
         <section className="landing-section">

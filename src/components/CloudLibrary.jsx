@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
-export default function CloudLibrary({ onSelectStory, onBack }) {
+export default function CloudLibrary({ onSelectStory, onBack, initialCategory = null }) {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
 
   useEffect(() => {
     async function loadLibrary() {
@@ -85,7 +85,7 @@ export default function CloudLibrary({ onSelectStory, onBack }) {
           className="picker-back-btn" 
           onClick={() => {
             if (searchTerm) setSearchTerm('');
-            else if (selectedCategory) setSelectedCategory(null);
+            else if (selectedCategory && !initialCategory) setSelectedCategory(null);
             else onBack();
           }}
         >

@@ -55,6 +55,7 @@ export default function App() {
   const [view,               setView]               = useLocalStorage('gylfa-view',  'home');
   const [activeBook,         setActiveBook]         = useLocalStorage('gylfa-book',  'gylfaginning');
   const [activeCategory,     setActiveCategory]     = useState(null);
+  const [initialCloudCategory, setInitialCloudCategory] = useState(null);
   const [chapters,           setChapters]           = useState(gylfData);
   const [thjodCategories,    setThjodCategories]    = useState([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useLocalStorage('gylfa-kafli', 0);
@@ -154,7 +155,7 @@ export default function App() {
   }, [activeBook, saveAnnotations]);
 
   // ── Bók opnast ───────────────────────────────────────────────
-  const openBook = async (bookId, startingChapterIndex = 0) => {
+  const openBook = async (bookId, startingChapterIndex = 0, initialCategory = null) => {
     setActiveBook(bookId);
     setAnnotateMode(false);
     setReadingMode(false);
@@ -164,6 +165,7 @@ export default function App() {
       setThjodCategories(data);
       setView('categories');
     } else if (bookId === 'snerpa') {
+      setInitialCloudCategory(initialCategory);
       setView('cloud_library');
     } else if (bookId === 'voluspa') {
       const mod = await import('./voluspa.json');
@@ -307,6 +309,8 @@ export default function App() {
           <button onClick={cycleTheme}>{themeLabel}</button>
         </div>
         <CloudLibrary
+          key={initialCloudCategory || 'cloud_root'}
+          initialCategory={initialCloudCategory}
           onSelectStory={openCloudStory}
           onBack={() => setView('home')}
         />
