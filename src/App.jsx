@@ -8,6 +8,7 @@ import FamilySetup from './components/FamilySetup';
 import ChildGate from './components/ChildGate';
 import LandingPage from './components/LandingPage';
 import CategoryPicker from './components/CategoryPicker';
+import CloudLibrary from './components/CloudLibrary';
 import Sidebar from './components/Sidebar';
 import Reader from './components/Reader';
 import ReadingDashboard from './components/ReadingDashboard';
@@ -162,6 +163,8 @@ export default function App() {
       const data = await loadThjodsogar();
       setThjodCategories(data);
       setView('categories');
+    } else if (bookId === 'snerpa') {
+      setView('cloud_library');
     } else if (bookId === 'voluspa') {
       const mod = await import('./voluspa.json');
       setChapters(mod.default);
@@ -197,6 +200,18 @@ export default function App() {
       number: i + 1,
       title: s.title,
       paragraphs: s.paragraphs,
+    })));
+    setCurrentChapterIndex(0);
+    setView('reader');
+  };
+
+  const openCloudStory = (story) => {
+    setActiveBook(story.id); // setur t.d. "bukoll1" eða "asm-kong"
+    setActiveCategory({ label: story.category || 'Skýjasafn', emoji: '☁️' });
+    setChapters(story.chapters.map((c, i) => ({
+      number: i + 1,
+      title: c.title,
+      paragraphs: c.paragraphs,
     })));
     setCurrentChapterIndex(0);
     setView('reader');
@@ -247,7 +262,7 @@ export default function App() {
       : activeBook === 'havamal' ? 'Hávamál'
       : (activeBook === 'dmyrk' || activeBook === 'gilitr' || activeBook === 'saemi')
       ? 'Myndskreytt saga'
-      : 'Gylfaginning';
+      : activeCategory?.emoji ? `${activeCategory.emoji} ${activeCategory.label}` : 'Gylfaginning';
 
   // ── Hleðsluhamur ─────────────────────────────────────────────
   if (user === undefined || loadingFamily) {
@@ -280,6 +295,20 @@ export default function App() {
           setReaders={setReaders}
           onOpenBook={openBook}
           family={family}
+        />
+      </>
+    );
+  }
+
+  if (view === 'cloud_library') {
+    return (
+      <>
+        <div className="landing-theme-toggle">
+          <button onClick={cycleTheme}>{themeLabel}</button>
+        </div>
+        <CloudLibrary
+          onSelectStory={openCloudStory}
+          onBack={() => setView('home')}
         />
       </>
     );

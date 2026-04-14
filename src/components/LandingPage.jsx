@@ -49,6 +49,16 @@ const BOOKS = [
     available: true,
   },
   {
+    id: 'snerpa',
+    title: 'Stóra Bókasafnið',
+    subtitle: 'Öll ævintýrin, þjóðsögurnar o.fl.',
+    description: 'Aðgangur að þúsundum sagna: H.C. Andersen, Íslendingasögur, Gríms ævintýri og margt fleira.',
+    coverEmoji: '📚',
+    chapters: 400,
+    available: true,
+    ctaLabel: 'Kikja í hilluna →',
+  },
+  {
     id: 'gilitr',
     title: 'Gilitrutt',
     subtitle: 'Myndskreytt þjóðsaga',
