@@ -1,80 +1,75 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 
-const BOOKS = [
+// Grunnbækur með fallegum litum
+const FEATURED_BOOKS = [
   {
     id: 'gylfaginning',
     title: 'Gylfaginning',
-    subtitle: 'Úr Eddu Snorra Sturlusonar',
-    description: 'Sagan af sköpun heimsins, guðunum í Ásgarði, Baldri, Loka, og Ragnarök — frásögn sem hefur lifað í þúsund ár.',
+    subtitle: 'Edda Snorra Sturlusonar',
+    description: 'Sagan af sköpun heimsins, guðunum og Ragnarök.',
     cover: '/gylfaginning-cover.png',
-    chapters: 9,
-    available: true,
-  },
-  {
-    id: 'thjodsogar',
-    title: 'Íslenskar þjóðsögur',
-    subtitle: 'Safnað af Jóni Árnasyni (1862)',
-    description: 'Sögur af huldufólki, álfum, draugum og tröllum úr íslensku þjóðlífi — 588 sögur skipt í 10 flokka.',
-    cover: '/thjodsogar-cover.png',
-    chapters: 588,
-    available: true,
-    ctaLabel: 'Finna sögu →',
+    color: '#2d1b69',
+    accent: '#a78bfa',
+    kaflar: '9 kaflar',
   },
   {
     id: 'voluspa',
     title: 'Völuspá',
     subtitle: 'Eddukvæði',
-    description: 'Saga heimsins frá sköpun til ragnaraka eins og völvan sagði Óðni. Eitt frægasta kvæði fornaldar, fært í nútímastafsetningu.',
+    description: 'Frá sköpun til ragnaraka — eitt frægasta kvæði fornaldar.',
     cover: '/voluspa-cover.png',
-    chapters: 7,
-    available: true,
+    color: '#1a3a2a',
+    accent: '#34d399',
+    kaflar: '7 hlutar',
   },
   {
     id: 'havamal',
     title: 'Hávamál',
     subtitle: 'Eddukvæði',
-    description: 'Lífsspeki og heilræði Óðins til manna. Fjallar um vináttu, siðferði, gestrisni og rúnatákn, fært í nútímastafsetningu.',
+    description: 'Lífsspeki og heilræði Óðins til manna.',
     cover: '/havamal-cover.png',
-    chapters: 6,
-    available: true,
+    color: '#3b1a10',
+    accent: '#fb923c',
+    kaflar: '6 hlutar',
   },
   {
-    id: 'dmyrk',
-    title: 'Djákninn á Myrká',
-    subtitle: 'Myndskreytt þjóðsaga',
-    description: 'Sérstök útgáfa af frægustu draugasögu Íslands, ægisifislega myndskreytt með 3 glænýjum listaverkum.',
-    cover: '/dmyrk-2.png',
-    chapters: 1,
-    available: true,
+    id: 'thjodsogar',
+    title: 'Þjóðsögur',
+    subtitle: 'Jón Árnason 1862',
+    description: 'Huldufólk, álfar, draugar og tröll — 588 sögur.',
+    cover: '/thjodsogar-cover.png',
+    color: '#1e1b4b',
+    accent: '#818cf8',
+    kaflar: '588 sögur',
+    ctaLabel: 'Finna sögu',
   },
-  {
-    id: 'gilitr',
-    title: 'Gilitrutt',
-    subtitle: 'Myndskreytt þjóðsaga',
-    description: 'Frægasta tröllasaga Íslands af letu bændakonunni og stórskorinni tröllskessu sem spann ullina hennar.',
-    cover: '/gilitr-2.png',
-    chapters: 1,
-    available: true,
-  },
-  {
-    id: 'saemi',
-    title: 'Sæmundur fróði',
-    subtitle: 'Myndskreytt þjóðsaga',
-    description: 'Sagan af Sæmundi í Svartaskóla, og hvernig hann plataði kölska og barði selinn í höfuðið með saltaranum.',
-    cover: '/saemi-2.png',
-    chapters: 1,
-    available: true,
-  },
+];
+
+const ILLUSTRATED = [
+  { id: 'dmyrk', title: 'Djákninn á Myrká', cover: '/dmyrk-2.png', color: '#1a1a2e', accent: '#e879f9' },
+  { id: 'gilitr', title: 'Gilitrutt', cover: '/gilitr-2.png', color: '#1a2e1a', accent: '#4ade80' },
+  { id: 'saemi', title: 'Sæmundur fróði', cover: '/saemi-2.png', color: '#2e1a1a', accent: '#f87171' },
+];
+
+// Flokkur glósur/litir
+const CAT_THEMES = [
+  { color: '#1e1b4b', accent: '#818cf8', emoji: '📜' },
+  { color: '#1a3a2a', accent: '#34d399', emoji: '🌿' },
+  { color: '#3b1a10', accent: '#fb923c', emoji: '🔥' },
+  { color: '#1a1a2e', accent: '#e879f9', emoji: '✨' },
+  { color: '#0c1a2e', accent: '#38bdf8', emoji: '🌊' },
+  { color: '#2e2a10', accent: '#facc15', emoji: '⭐' },
+  { color: '#1a2e2a', accent: '#2dd4bf', emoji: '🏔️' },
+  { color: '#2e1a2e', accent: '#c084fc', emoji: '🌙' },
 ];
 
 const AVATAR_COLORS = [
-  '#4a7fcb', '#c05252', '#4a9e6e', '#8e5fad',
-  '#c07d3a', '#3a8ea8', '#a85f7a', '#6b7fa8',
+  '#4a7fcb','#c05252','#4a9e6e','#8e5fad',
+  '#c07d3a','#3a8ea8','#a85f7a','#6b7fa8',
 ];
-
 function avatarColor(name) {
   let sum = 0;
   for (let i = 0; i < name.length; i++) sum += name.charCodeAt(i);
@@ -86,30 +81,22 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
   const inputRef = useRef(null);
   const { logOut } = useAuth();
   const [cloudCats, setCloudCats] = useState([]);
+  const [copied, setCopied] = useState(false);
+  const [readerOpen, setReaderOpen] = useState(false);
 
   useEffect(() => {
-    // Sækja alla flokkana úr Firebase library
     getDocs(collection(db, 'library')).then(snap => {
       const cats = {};
       snap.forEach(doc => {
-         const cat = doc.data().category || 'Annað';
-         cats[cat] = (cats[cat] || 0) + 1;
+        const cat = doc.data().category || 'Annað';
+        cats[cat] = (cats[cat] || 0) + 1;
       });
-      // Búa til bókahillu færslur úr þessum flokkum
-      const sortedKeys = Object.keys(cats).sort();
-      const catArray = sortedKeys.map(name => ({
-         id: `cloud_idx_${name}`,
-         title: name,
-         subtitle: 'Snerpu safnið',
-         description: `Bókasafn með ${cats[name]} sögum úr þessum flokki.`,
-         coverEmoji: '📁',
-         chapters: cats[name],
-         available: true,
-         isCloudAction: true,
-         cloudCategory: name,
-         ctaLabel: 'Skoða safnið →'
+      const sorted = Object.keys(cats).sort().map((name, i) => ({
+        name,
+        count: cats[name],
+        theme: CAT_THEMES[i % CAT_THEMES.length],
       }));
-      setCloudCats(catArray);
+      setCloudCats(sorted);
     });
   }, []);
 
@@ -120,214 +107,160 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
     setNewName('');
     inputRef.current?.focus();
   };
-
   const removeReader = (name) => setReaders(prev => prev.filter(r => r !== name));
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') addReader();
+  const handleShare = () => {
+    const link = `${window.location.origin}/lesa/${family.shareCode}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => prompt('Afritaðu linkinn:', link));
   };
 
   return (
-    <div className="landing">
-      {/* Hero */}
-      <header className="landing-hero">
-        <div className="landing-hero-inner">
-          <div className="landing-rune">᛭</div>
-          <h1 className="landing-title">Lestrarsalurinn</h1>
-          <p className="landing-tagline">Lesið saman, spyrjið saman, finnið saman.</p>
+    <div className="lp">
+      {/* ── Top bar ── */}
+      <header className="lp-topbar">
+        <div className="lp-logo">
+          <span className="lp-rune">᛭</span>
+          <span className="lp-logo-text">Lestrarsalurinn</span>
+        </div>
+        <div className="lp-topbar-right">
+          {family && (
+            <>
+              <span className="lp-family-name">{family.name}</span>
+              {family.shareCode && (
+                <button className="lp-share-btn" onClick={handleShare}>
+                  {copied ? '✓ Afritað!' : '🔗 Deila með börnum'}
+                </button>
+              )}
+              <button className="lp-logout-btn" onClick={logOut}>Útskrá</button>
+            </>
+          )}
         </div>
       </header>
 
-      <main className="landing-main">
-        {/* Family banner */}
-        {family && (
-          <div className="landing-family-banner">
-            <span className="landing-family-name">{family.name}</span>
-            <div className="landing-family-actions">
-              {family.shareCode && (
-                <button
-                  className="landing-share-btn"
-                  onClick={() => {
-                    const link = `${window.location.origin}/lesa/${family.shareCode}`;
-                    navigator.clipboard.writeText(link).then(() => {
-                      alert('Linkur afritadur! Sendu hann til barnanna.');
-                    }).catch(() => {
-                      prompt('Afritadu linkinn:', link);
-                    });
-                  }}
-                >
-                  Deila med bornum
-                </button>
-              )}
-              <button className="landing-logout-btn" onClick={logOut}>Skra ut</button>
-            </div>
-          </div>
-        )}
-        {/* Participants */}
-        <section className="landing-section">
-          <h2 className="landing-section-title">Hverjir eru að lesa í dag?</h2>
-          <p className="landing-section-hint">
-            Skráið nöfn þátttakenda. Þið getið merkt athugasemdir og spurningar
-            við hvert nafn meðan þið lesið.
-          </p>
+      {/* ── Hero ── */}
+      <section className="lp-hero">
+        <div className="lp-hero-content">
+          <p className="lp-hero-eyebrow">Íslenskt bókasafn fyrir börn</p>
+          <h1 className="lp-hero-title">Lestu. Hlaustu. Dáðu þér.</h1>
+          <p className="lp-hero-sub">Gylfaginning, Eddukvæði, Þjóðsögur og hundruð íslenzkra ævintýra — allt á einum stað.</p>
 
-          <div className="landing-readers">
+          {/* Readers */}
+          <div className="lp-readers-bar">
             {readers.map(name => (
-              <div key={name} className="landing-reader-chip">
-                <span
-                  className="landing-reader-avatar"
-                  style={{ background: avatarColor(name) }}
-                >
-                  {name[0].toUpperCase()}
-                </span>
-                <span>{name}</span>
-                <button
-                  className="landing-reader-remove"
-                  onClick={() => removeReader(name)}
-                  title={`Fjarlægja ${name}`}
-                >
-                  ×
-                </button>
-              </div>
+              <button
+                key={name}
+                className="lp-reader-chip"
+                style={{ background: avatarColor(name) }}
+                onClick={() => removeReader(name)}
+                title={`Fjarlægja ${name}`}
+              >
+                {name[0].toUpperCase()} {name}
+              </button>
             ))}
-
-            <div className="landing-reader-add">
+            <button className="lp-reader-add-toggle" onClick={() => setReaderOpen(o => !o)}>
+              {readerOpen ? '×' : '+ Bæta við lesanda'}
+            </button>
+          </div>
+          {readerOpen && (
+            <div className="lp-reader-input-row">
               <input
                 ref={inputRef}
-                type="text"
-                className="landing-name-input"
-                placeholder="Bæta við nafni…"
+                className="lp-reader-input"
+                placeholder="Nafn barns..."
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onKeyDown={e => e.key === 'Enter' && addReader()}
+                autoFocus
               />
-              <button
-                className="landing-add-btn"
-                onClick={addReader}
-                disabled={!newName.trim() || readers.includes(newName.trim())}
-              >
-                +
-              </button>
+              <button className="lp-reader-confirm" onClick={addReader}>Bæta við</button>
             </div>
-          </div>
-        </section>
+          )}
+        </div>
+        <div className="lp-hero-deco" aria-hidden>
+          <div className="lp-hero-rune-bg">ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ</div>
+        </div>
+      </section>
 
-        {/* Book shelf */}
-        <section className="landing-section">
-          <h2 className="landing-section-title">Veldu sögu til að lesa</h2>
-
-          <div className="landing-shelf">
-            {BOOKS.filter(b => b.subtitle !== 'Myndskreytt þjóðsaga').map(book => (
-              <div
+      <div className="lp-content">
+        {/* ── Featured books ── */}
+        <section className="lp-section">
+          <h2 className="lp-section-title">Stærstu verkin</h2>
+          <div className="lp-featured-grid">
+            {FEATURED_BOOKS.map(book => (
+              <button
                 key={book.id}
-                className={`landing-book-card ${!book.available ? 'unavailable' : ''}`}
+                className="lp-fcard"
+                style={{ '--card-bg': book.color, '--card-accent': book.accent }}
+                onClick={() => onOpenBook(book.id)}
               >
-                <div className="landing-book-cover">
+                <div className="lp-fcard-cover">
                   {book.cover
                     ? <img src={book.cover} alt={book.title} />
-                    : <div className="landing-book-cover-placeholder">
-                        <span>{book.coverEmoji || book.title[0]}</span>
-                      </div>
+                    : <span className="lp-fcard-emoji">📖</span>
                   }
-                  {!book.available && (
-                    <div className="landing-book-soon">Bráðum</div>
-                  )}
                 </div>
-
-                <div className="landing-book-info">
-                  <h3 className="landing-book-title">{book.title}</h3>
-                  <p className="landing-book-subtitle">{book.subtitle}</p>
-                  <p className="landing-book-desc">{book.description}</p>
-                  {book.available && (
-                    <div className="landing-book-meta">
-                      {book.chapters} kaflar
-                    </div>
-                  )}
+                <div className="lp-fcard-body">
+                  <div className="lp-fcard-tag">{book.subtitle}</div>
+                  <h3 className="lp-fcard-title">{book.title}</h3>
+                  <p className="lp-fcard-desc">{book.description}</p>
+                  <div className="lp-fcard-meta">{book.kaflar}</div>
                 </div>
-
-                 {book.available && (
-                  <button
-                    className="landing-start-btn"
-                    onClick={() => onOpenBook(book.id)}
-                  >
-                    {book.ctaLabel || 'Byrja að lesa →'}
-                  </button>
-                )}
-              </div>
+                <div className="lp-fcard-cta">{book.ctaLabel || 'Byrja →'}</div>
+              </button>
             ))}
           </div>
         </section>
 
-        {cloudCats.length > 0 && (
-          <section className="landing-section">
-            <h2 className="landing-section-title">Stóra Bókasafnið</h2>
-            <div className="landing-shelf">
-              {cloudCats.map(book => (
-                <div key={book.id} className="landing-book-card">
-                  <div className="landing-book-cover">
-                    <div className="landing-book-cover-placeholder">
-                      <span>{book.coverEmoji}</span>
-                    </div>
-                  </div>
-                  <div className="landing-book-info">
-                    <h3 className="landing-book-title">{book.title}</h3>
-                    <p className="landing-book-subtitle">{book.subtitle}</p>
-                    <p className="landing-book-desc">{book.description}</p>
-                    <div className="landing-book-meta">{book.chapters} sögur</div>
-                  </div>
-                  <button
-                    className="landing-start-btn"
-                    onClick={() => onOpenBook('snerpa', null, book.cloudCategory)}
-                  >
-                    {book.ctaLabel}
-                  </button>
+        {/* ── Illustrated ── */}
+        <section className="lp-section">
+          <h2 className="lp-section-title">Myndskreyttar sögur</h2>
+          <div className="lp-illus-grid">
+            {ILLUSTRATED.map(book => (
+              <button
+                key={book.id}
+                className="lp-icard"
+                style={{ '--card-bg': book.color, '--card-accent': book.accent }}
+                onClick={() => onOpenBook(book.id)}
+              >
+                <img src={book.cover} alt={book.title} className="lp-icard-img" />
+                <div className="lp-icard-overlay">
+                  <span className="lp-icard-title">{book.title}</span>
+                  <span className="lp-icard-cta">Lesa →</span>
                 </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Cloud categories ── */}
+        {cloudCats.length > 0 && (
+          <section className="lp-section">
+            <h2 className="lp-section-title">Stóra Bókasafnið</h2>
+            <p className="lp-section-sub">Hundruð sagna — veldu flokk til að byrja</p>
+            <div className="lp-cat-grid">
+              {cloudCats.map(({ name, count, theme }) => (
+                <button
+                  key={name}
+                  className="lp-ccard"
+                  style={{ '--card-bg': theme.color, '--card-accent': theme.accent }}
+                  onClick={() => onOpenBook('snerpa', null, name)}
+                >
+                  <span className="lp-ccard-emoji">{theme.emoji}</span>
+                  <span className="lp-ccard-name">{name}</span>
+                  <span className="lp-ccard-count">{count} sögur</span>
+                </button>
               ))}
             </div>
           </section>
         )}
+      </div>
 
-        {/* Illustrated stories */}
-        <section className="landing-section">
-          <h2 className="landing-section-title">Myndskreyttar sögur</h2>
-
-          <div className="landing-shelf">
-            {BOOKS.filter(b => b.subtitle === 'Myndskreytt þjóðsaga').map(book => (
-              <div
-                key={book.id}
-                className={`landing-book-card ${!book.available ? 'unavailable' : ''}`}
-              >
-                <div className="landing-book-cover">
-                  {book.cover
-                    ? <img src={book.cover} alt={book.title} />
-                    : <div className="landing-book-cover-placeholder">
-                        <span>{book.coverEmoji || book.title[0]}</span>
-                      </div>
-                  }
-                  {!book.available && (
-                    <div className="landing-book-soon">Bráðum</div>
-                  )}
-                </div>
-
-                <div className="landing-book-info">
-                  <h3 className="landing-book-title">{book.title}</h3>
-                  <p className="landing-book-subtitle">{book.subtitle}</p>
-                  <p className="landing-book-desc">{book.description}</p>
-                </div>
-
-                {book.available && (
-                  <button
-                    className="landing-start-btn"
-                    onClick={() => onOpenBook(book.id)}
-                  >
-                    Byrja að lesa →
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      </main>
+      <footer className="lp-footer">
+        Lestrarsalurinn · Byggt á Snerpu-gagnagrunni · Íslenska bókmenntaarfleifð
+      </footer>
     </div>
   );
 }
