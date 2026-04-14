@@ -2168,3 +2168,34 @@ button:hover {
   transition: opacity 0.15s;
 }
 .landing-share-btn:hover { opacity: 0.85; background: var(--accent-color); }
+
+/* Cloud Library */
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px; width: 100%; max-width: 1200px; padding: 20px 40px; margin: 0 auto;
+}
+.library-card {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start;
+  text-align: left; background: var(--surface); padding: 20px;
+}
+.library-card-meta {
+  margin-top: auto; padding-top: 10px; font-size: 0.85rem; color: var(--text-muted);
+}
+.library-search-container {
+  width: 100%; max-width: 600px; margin: 0 auto 20px auto; padding: 0 40px;
+}
+.library-search-input {
+  width: 100%; padding: 14px 20px; font-size: 1.05rem; 
+  border-radius: 20px; border: 2px solid var(--border-color);
+  background: var(--surface); color: var(--text-color);
+  transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+.library-search-input:focus {
+  outline: none; border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+@media (max-width: 768px) {
+  .library-grid { padding: 20px; grid-template-columns: 1fr 1fr; }
+  .library-search-container { padding: 0 20px; }
+}
