@@ -121,6 +121,11 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Hreinsa lesendur við útskráningu
+  useEffect(() => {
+    if (!user) setReaders([]);
+  }, [user]);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth <= 768) { setSidebarOpen(false); setNotesOpen(false); }
