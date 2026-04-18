@@ -135,7 +135,7 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family, u
           <span className="lp-logo-text">Húslestur</span>
         </div>
         <div className="lp-topbar-right">
-          {family ? (
+          {user && family ? (
             <>
               <span className="lp-family-name">{family.name}</span>
               {family.shareCode && (
