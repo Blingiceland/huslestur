@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon-512.png'],
       manifest: {
-        name: 'Lestrarsalurinn',
-        short_name: 'Lestrarsalur',
+        name: 'Húslestur',
+        short_name: 'Húslestur',
         description: 'Lestu íslenskar sögur og goðsögur með fjölskyldunni',
         theme_color: '#1a1a2e',
         background_color: '#1a1a2e',

@@ -82,7 +82,7 @@ function avatarColor(name) {
   return AVATAR_COLORS[sum % AVATAR_COLORS.length];
 }
 
-export default function LandingPage({ readers, setReaders, onOpenBook, family }) {
+export default function LandingPage({ readers, setReaders, onOpenBook, family, user, onLoginClick }) {
   const [newName, setNewName] = useState('');
   const inputRef = useRef(null);
   const { logOut } = useAuth();
@@ -132,10 +132,10 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
       <header className="lp-topbar">
         <div className="lp-logo">
           <span className="lp-rune">᛭</span>
-          <span className="lp-logo-text">Lestrarsalurinn</span>
+          <span className="lp-logo-text">Húslestur</span>
         </div>
         <div className="lp-topbar-right">
-          {family && (
+          {family ? (
             <>
               <span className="lp-family-name">{family.name}</span>
               {family.shareCode && (
@@ -145,6 +145,10 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
               )}
               <button className="lp-logout-btn" onClick={logOut}>Útskrá</button>
             </>
+          ) : (
+            <button className="lp-login-btn" onClick={onLoginClick}>
+              🔑 Innskrá
+            </button>
           )}
         </div>
       </header>
@@ -199,7 +203,7 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
         <section className="lp-section">
           <h2 className="lp-section-title">Bókasafnið</h2>
 
-          {/* Horizontal scroll: Gylfaginning, Völuspá, Hávamál, Þjóðsögur */}
+          {/* Horizontal scroll — ALLT saman: Gylfaginning + HC Andersen o.fl. */}
           <div className="lp-books-row">
             {FEATURED_BOOKS.map(book => (
               <button
@@ -223,28 +227,27 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
                 <div className="lp-fcard-cta">{book.ctaLabel || 'Byrja →'}</div>
               </button>
             ))}
+
+            {featuredCats.map(({ name, count, theme }) => (
+              <button
+                key={name}
+                className="lp-fcard"
+                style={{ '--card-bg': theme.color, '--card-accent': theme.accent }}
+                onClick={() => onOpenBook('snerpa', null, name)}
+              >
+                <div className="lp-fcard-cover">
+                  <img src={CATEGORY_IMAGES[name]} alt={name} />
+                </div>
+                <div className="lp-fcard-body">
+                  <div className="lp-fcard-tag">Bókasafn</div>
+                  <h3 className="lp-fcard-title">{name}</h3>
+                  <p className="lp-fcard-desc">{count} sögur til lestrar</p>
+                </div>
+                <div className="lp-fcard-cta">Finna sögu</div>
+              </button>
+            ))}
           </div>
 
-          {/* HC Andersen / Íslendingasögur / Íslenskar ævintýri */}
-          {featuredCats.length > 0 && (
-            <div className="lp-cloud-grid" style={{ marginTop: '20px' }}>
-              {featuredCats.map(({ name, count, theme }) => (
-                <button
-                  key={name}
-                  className="lp-cloud-card"
-                  style={{ '--card-accent': theme.accent }}
-                  onClick={() => onOpenBook('snerpa', null, name)}
-                >
-                  <img src={CATEGORY_IMAGES[name]} alt={name} className="lp-cloud-card-img" />
-                  <div className="lp-cloud-card-overlay">
-                    <span className="lp-cloud-card-subtitle">Bókasafn</span>
-                    <span className="lp-cloud-card-title">{name}</span>
-                    <span className="lp-cloud-card-count" style={{ color: theme.accent }}>{count} sögur →</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
         </section>
 
         {/* ── Myndskreyttar sögur — neðst ── */}
@@ -273,7 +276,7 @@ export default function LandingPage({ readers, setReaders, onOpenBook, family })
 
 
       <footer className="lp-footer">
-        Lestrarsalurinn · Byggt á Snerpu-gagnagrunni · Íslenska bókmenntaarfleifð
+        Húslestur · Byggt á Snerpu-gagnagrunni · Íslenska bókmenntaarfleifð
       </footer>
     </div>
   );

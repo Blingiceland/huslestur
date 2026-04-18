@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function LoginPage() {
-  const { signInWithGoogle, error } = useAuth();
+export default function LoginPage({ onClose }) {
+  const { user, signInWithGoogle, error } = useAuth();
+
+  // Auto-close modal after successful login
+  useEffect(() => {
+    if (user && onClose) onClose();
+  }, [user, onClose]);
 
   return (
     <div className="login-page">
-      <div className="login-card">
+      <div className="login-card" style={{ position: 'relative' }}>
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}
+          >✕</button>
+        )}
         {/* Merki */}
         <div className="login-rune">᛭</div>
-        <h1 className="login-title">Lestrarsalurinn</h1>
+        <h1 className="login-title">Húslestur</h1>
         <p className="login-tagline">
           Lesið saman, spyrjið saman, finnið saman.
         </p>

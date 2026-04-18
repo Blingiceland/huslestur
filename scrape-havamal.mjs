@@ -30,12 +30,12 @@ async function main() {
   // Let's just find the indexes of the roman numerals.
 
   const sections = [
-    { num: 1, title: 'I. Gestaþáttur', startStr: '1. Gáttir', endStr: 'II. Mansöngur' },
-    { num: 2, title: 'II. Mansöngur', startStr: '84. Meyjar orðum', endStr: 'III. Heilræði' },
-    { num: 3, title: 'III. Heilræði', startStr: '111. Mál er að þylja', endStr: 'IV. Píslir og rúnir' },
-    { num: 4, title: 'IV. Píslir og rúnir', startStr: '138. Veit eg að eg hékk', endStr: 'V. Galdur' },
-    { num: 5, title: 'V. Galdur', startStr: '146. Ljóð eg þau kann', endStr: 'VI. Ljóðalok' },
-    { num: 6, title: 'VI. Ljóðalok', startStr: '164. Nú eru Háva mál kveðin', endStr: null }
+    { num: 1, title: 'I. Gestaþáttur', startStr: 'Gáttir allar', endStr: 'II. Mansöngur' },
+    { num: 2, title: 'II. Mansöngur', startStr: 'Meyjar orðum', endStr: 'III. Heilræði' },
+    { num: 3, title: 'III. Heilræði', startStr: 'Mál er að þylja', endStr: 'IV. Píslir og rúnir' },
+    { num: 4, title: 'IV. Píslir og rúnir', startStr: 'Veit eg að eg hékk', endStr: 'V. Galdur' },
+    { num: 5, title: 'V. Galdur', startStr: 'Ljóð eg þau kann', endStr: 'VI. Ljóðalok' },
+    { num: 6, title: 'VI. Ljóðalok', startStr: 'Nú eru Háva mál kveðin', endStr: null }
   ];
 
   let chapters = [];
@@ -50,7 +50,7 @@ async function main() {
     // We will just split on `\n\n` because blockquotes are separated or numbers are separated...
     // Actually, splitting by regex `\n(?=\d+\. )` is safest.
     
-    let stanzasRaw = partText.split(/\n(?=\d+\.\s)/g);
+    let stanzasRaw = partText.split(/\n\n/g);
     
     let paragraphs = stanzasRaw
       .map(st => st.replace(/\n(?!\n)/g, '\n').trim()) // keep newlines between verses

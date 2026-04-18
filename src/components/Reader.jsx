@@ -152,7 +152,14 @@ export default function Reader({
 
           return (
             <div key={i} className="para-block">
-              <p title={annotateMode ? 'Klikka til að bæta við' : undefined}>{p}</p>
+              <p title={annotateMode ? 'Klikka til að bæta við' : undefined}>
+                {p.split('\n').map((line, li, arr) => (
+                  <React.Fragment key={li}>
+                    {line}
+                    {li < arr.length - 1 && <br />}
+                  </React.Fragment>
+                ))}
+              </p>
               {img && (
                 <figure className="story-illustration-container">
                   <img src={img.src} className="story-illustration" alt="Mynd úr sögu" />

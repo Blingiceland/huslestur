@@ -14,6 +14,108 @@ const CATEGORY_ACCENTS = {
   'Íslendingasögur':  '#fbbf24',
 };
 
+const STORY_COVERS_BY_TITLE = {
+  'hans klaufi': '/hans_klaufi.png',
+  'klukkan': '/klukkan.png',
+  'litli kláus og stóri kláus': '/litli_klaus.png',
+  'prinsessan á bauninni': '/prinsessan_bauninni.png',
+  'sólargeislinn og fanginn': '/solargeislinn.png',
+  'vatnsdropinn': '/vatnsdropinn.png',
+  'brennu-njáls saga': '/brennu_njals_saga.png',
+  'egils saga': '/egils_saga.png',
+  'grettis saga': '/grettis_saga.png',
+  'bandamannasaga': '/bandamannasaga.png',
+  'bjarnar saga hítdælakappa': '/bjarnar_saga.png',
+  'bárðar saga snæfellsáss': '/bardar_saga.png',
+  'droplaugarsona saga': '/droplaugarsona_saga.png',
+  'eyrbyggja saga': '/eyrbyggja_saga.png',
+  'fljótsdæla saga': '/fljotsdaela_saga.png',
+  'flóamanna saga': '/floamanna_saga.png',
+  'fóstbræðra saga': '/fostbraedra_saga.png',
+  'finnboga saga ramma': '/finnboga_saga.png',
+  'færeyinga saga': '/faereyinga_saga.png',
+  'grænlendinga saga': '/graenlendinga_saga.png',
+  'grænlendinga þáttur': '/graenlendinga_thattur.png',
+  'gull-þóris saga': '/gull_thoris_saga.png',
+  'gunnars saga keldugnúpsfífls': '/gunnars_saga.png',
+  'gunnlaugs saga ormstungu': '/gunnlaugs_saga.png',
+  'gísla saga súrssonar': '/gisla_saga.png',
+  'hallfreðar saga vandræðaskálds': '/hallfredar_saga.png',
+  'harðar saga og hólmverja': '/hardar_saga.png',
+  'heiðarvíga saga': '/heidarviga_saga.png',
+  'hrana saga hrings': '/hrana_saga.png',
+  'hænsna-þóris saga': '/haensna_thoris_saga.png',
+  'hávarðar saga ísfirðings': '/havardar_saga.png',
+  'hrafnkels saga freysgoða': '/hrafnkels_saga.png',
+  'þórðar saga hreðu': '/thordar_saga.png',
+  'kjalnesinga saga': '/kjalnesinga_saga.png',
+  'kormáks saga': '/kormaks_saga.png',
+  'króka-refs saga': '/kroka_refs_saga.png',
+  'laxdæla saga': '/laxdaela_saga.png',
+  'ljósvetninga saga': '/ljosvetninga_saga.png',
+  'svarfdæla saga': '/svarfdaela_saga.png',
+  'þorsteins saga hvíta': '/thorsteins_saga_hvita.png',
+  'þorsteins saga síðu-hallssonar': '/thorsteins_saga_hallssonar.png',
+  'valla-ljóts saga': '/valla_ljots_saga.png',
+  'vatnsdæla saga': '/vatnsdaela_saga.png',
+  'víga-glúms saga': '/viga_glums_saga.png',
+  'reykdæla saga og víga-skútu': '/reykdaela_saga.png',
+  'víglundar saga': '/viglundar_saga.png',
+  'vápnfirðinga saga': '/vopnfirdinga_saga.png',
+  
+  // Ævintýri
+  'bangsímon': '/bangsimon.png',
+  'brjáms saga': '/brjams_saga_aev.png', // Til að forðast rugling ef til
+  'báráður': '/baradur.png',
+  'bóndadæturnar': '/bondadaeturnar.png',
+  'búkolla - i': '/bukolla_1.png',
+  'búkolla - ii': '/bukolla_2.png',
+  'gorvömb': '/gorvomb.png',
+  'grautardalls saga': '/grautardalls_saga.png',
+  'helga karlsdóttir': '/helga_karlsdottir.png',
+  'grámann': '/gramann.png',
+  'sagan af kolrössu krókríðandi': '/kolrossu.png',
+  'sagan af líneik og laufey': '/lineik.png',
+  'sagan af loðinbarða': '/lodinbarda.png',
+  'karlsdæturnar': '/karlsdaeturnar.png',
+  'ásmundur kóngsson og signý systir hans': '/asmundur_kongsson.png',
+  'sagan af brauðþekkjara, vatnsþekkjara og mannþekkjara': '/braudthekkjara.png',
+  'sagan af birni bragðastakk': '/birni_bragdastakk.png',
+  'sagan af þrem kóngssonum': '/threm_kongssonum.png',
+  'sagan af fertram og ísól björtu': '/fertram_isol.png',
+  'saga af finnu forvitru': '/finnu_forvitru.png',
+  'sagan af geirlaugu og græðara': '/geirlaugu_graedara.png',
+  'sagan af gríshildi góðu': '/grishildi_godu.png',
+  'sagan af hans karlssyni': '/hans_karlssyni.png',
+  'sagan af hermóði og háðvöru': '/hermodi_hadvoru.png',
+  'sagan af hildi góðu stjúpu': '/hildi_godu.png',
+  'sagan af hlini kóngssyni': '/hlini_kongssyni.png',
+  'himinbjargar saga': '/himinbjargar_saga.png',
+  'sagan af hlinik kóngssyni og þóru karlsdóttur': '/hlinik_thoru.png',
+  'sagan af hordingul': '/hordingul.png',
+  'sagan af hringi kóngssyni': '/hringi_kongssyni.png',
+  'ingibjörg kóngsdóttir': '/ingibjorg_kongsdottir.png',
+  'sagan af jónídes konungssyni og hildi konungsdóttur': '/jonides.png',
+  'karlsdæturnar þrjár': '/karlsdaeturnar_thriar.png',
+  'kiðuvaldi': '/kiduvaldi.png',
+  'karlssonur og kötturinn hans': '/karlssonur_kotturinn.png',
+  'koltrýnu saga': '/koltrynu_saga.png',
+  'sagan af kóngsdótturinni og kölska': '/kongsdottirin_kolska.png',
+  'mærþallar saga': '/maerthallar_saga.png',
+  'mjaðveig og króka': '/mjadveig_og_kroka.png',
+  'sagan af mjaðveigu mánadóttur': '/mjadveigu_manadottur.png',
+  'olbogabarnið': '/olbogabarnid.png',
+  'neyttu á meðan á nefinu stendur': '/neyttu_a_medan.png',
+  'sagan af sigurði kóngssyni og ingibjörgu systur hans': '/sigurdi_ingibjorgu.png',
+  'sigurður kóngsson': '/sigurdur_kongsson.png',
+  'sagan af sigurði kóngssyni': '/sigurdur_kongsson.png', // Sömu mynd
+};
+
+const GENERIC_COVERS = {
+  'Íslendingasögur': '/islendingasogur_generic.png',
+  'Íslensk ævintýri': '/islensk_aevintyri_generic.png',
+};
+
 // Laga titla sem eru í hástöfum (t.d. "BANDAMANNASAGA" → "Bandamannasaga")
 function fixTitle(title) {
   if (!title) return title;
@@ -133,13 +235,38 @@ export default function CloudLibrary({ onSelectStory, onBack, initialCategory = 
         </div>
 
       ) : (
-        /* ── Story grid ── */
         <div className="cl-story-grid">
           {filteredStories.map(story => {
             const pgCount = story.chapters?.[0]?.paragraphs?.length || 0;
             const title   = fixTitle(story.title);
+            let coverImg = STORY_COVERS_BY_TITLE[title.toLowerCase()];
+            if (!coverImg && GENERIC_COVERS[story.category]) {
+              coverImg = GENERIC_COVERS[story.category];
+            }
             // Approximate reading time (avg 3 paragraphs per minute for kids)
             const mins    = Math.max(1, Math.round(pgCount / 3));
+
+            if (coverImg) {
+              return (
+                <button
+                  key={story.id}
+                  className="cl-cat-imgcard"
+                  style={{ '--cl-accent': accent, aspectRatio: '1 / 1' }}
+                  onClick={() => onSelectStory(story)}
+                >
+                  <img src={coverImg} alt={title} className="cl-cat-imgcard-img" />
+                  <div className="cl-cat-imgcard-overlay" style={{ padding: '16px 16px 14px' }}>
+                    <span className="cl-cat-imgcard-title" style={{ fontSize: '1.2rem', lineHeight: '1.2', marginBottom: '4px' }}>{title}</span>
+                    <div className="cl-story-meta">
+                      <span>{pgCount} kaflar</span>
+                      <span className="cl-story-dot">·</span>
+                      <span>~{mins} mín</span>
+                    </div>
+                  </div>
+                </button>
+              );
+            }
+
             return (
               <button
                 key={story.id}

@@ -183,7 +183,7 @@ export function FamilyProvider({ children }) {
       getNotes, saveNotes,
       getQna, saveQna,
       getAnnotations, saveAnnotations,
-      childMode, pickChildReader, getShareLink,
+      childMode, isChildMode: !!childMode, pickChildReader, getShareLink,
       targetRoute, setTargetRoute,
     }}>
       {children}

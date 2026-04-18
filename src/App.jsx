@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useAuth } from './contexts/AuthContext';
 import { useFamily } from './contexts/FamilyContext';
+import { db } from './firebase';
 
 import LoginPage from './components/LoginPage';
 import FamilySetup from './components/FamilySetup';
@@ -37,11 +38,13 @@ export default function App() {
     getNotes, saveNotes,
     getQna, saveQna,
     getAnnotations, saveAnnotations,
-    childMode, getShareLink,
+    childMode, isChildMode, getShareLink,
     targetRoute, setTargetRoute,
+    updateMembers,
   } = useFamily();
 
-  const isChildMode = !!childMode;
+  // ── Login modal ────────────────────────────────────────────────
+  const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
     if (isChildMode && childMode?.reader && targetRoute) {
@@ -52,7 +55,7 @@ export default function App() {
   }, [isChildMode, childMode, targetRoute]);
 
   // ── Skoðun og bók ────────────────────────────────────────────
-  const [view,               setView]               = useLocalStorage('gylfa-view',  'home');
+  const [view,               setView]               = useState('home');
   const [activeBook,         setActiveBook]         = useLocalStorage('gylfa-book',  'gylfaginning');
   const [activeCategory,     setActiveCategory]     = useState(null);
   const [initialCloudCategory, setInitialCloudCategory] = useState(null);
@@ -193,7 +196,32 @@ export default function App() {
       setChapters([story]);
       setCurrentChapterIndex(startingChapterIndex);
       setView('reader');
+    } else if (bookId === 'gylfaginning' || bookId === 'gylfa') {
+      setChapters(gylfData);
+      setCurrentChapterIndex(startingChapterIndex);
+      setView('reader');
     } else {
+      // Reynum að hlaða söguna beint úr skýinu (Firestore) fyrir deililink
+      try {
+        const { getDoc, doc } = await import('firebase/firestore');
+        const docSnap = await getDoc(doc(db, 'library', bookId));
+        if (docSnap.exists()) {
+          const story = docSnap.data();
+          setActiveCategory({ label: story.category || 'Skýjasafn', emoji: '☁️' });
+          setChapters(story.chapters.map((c, i) => ({
+            number: i + 1,
+            title: c.title,
+            paragraphs: c.paragraphs,
+          })));
+          setCurrentChapterIndex(startingChapterIndex);
+          setView('reader');
+          return;
+        }
+      } catch (err) {
+        console.error("Gat ekki hlaðið skýjasögu af link:", err);
+      }
+      
+      // Fallback
       setChapters(gylfData);
       setCurrentChapterIndex(startingChapterIndex);
       setView('reader');
@@ -257,6 +285,28 @@ export default function App() {
     setNotesOpen(true);
   };
 
+  const handleShareClick = () => {
+    const link = getShareLink(activeBook, currentChapterIndex);
+    if (!link) {
+      alert("Þú þarft að vera innskráð/ur og hafa stofnað fjölskyldu til að deila hlekkjum.");
+      return;
+    }
+    navigator.clipboard.writeText(link);
+    alert('Hlekkur á þennan kafla afritaður! Sendu hann á snjalltæki barnsins.');
+  };
+
+  // ── Lesendur uppfæra Firestore ef innskráður ─────────────────
+  const handleSetReaders = useCallback((updater) => {
+    setReaders(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      // Samstilla við Firestore ef fjölskylda er til
+      if (family && user) {
+        updateMembers(next);
+      }
+      return next;
+    });
+  }, [family, user, updateMembers, setReaders]);
+
   const themeLabel = theme === 'light' ? '☀️' : theme === 'sepia' ? '📜' : '🌙';
 
   const totalActivity =
@@ -277,7 +327,7 @@ export default function App() {
     return (
       <div className="app-loading">
         <div className="app-loading-rune">&#x16ED;</div>
-        <p>Hledur...</p>
+        <p>Hleður...</p>
       </div>
     );
   }
@@ -285,21 +335,36 @@ export default function App() {
   // ── Barnagatt (deililinkur) ─────────────────────────────────
   if (isChildMode && !childMode.reader) return <ChildGate />;
 
-  // ── Innskraning (valkvæð — forsíða er opin öllum) ───────────
-  // Skip login gate — the landing page and library are public
+  // ── Login modal overlay ─────────────────────────────────────
+  // Sýna login ef notandi biður um það
+  const loginModal = showLogin && !user && (
+    <div className="login-overlay" onClick={() => setShowLogin(false)}>
+      <div onClick={e => e.stopPropagation()}>
+        <LoginPage onClose={() => setShowLogin(false)} />
+      </div>
+    </div>
+  );
+
+  // ── Fjölskylduskráning eftir fyrstu innskráningu ────────────
+  if (user && !family && !loadingFamily) {
+    return <FamilySetup />;
+  }
 
   // ── Heimasíða ─────────────────────────────────────────────────
   if (view === 'home') {
     return (
       <>
+        {loginModal}
         <div className="landing-theme-toggle">
           <button onClick={cycleTheme}>{themeLabel}</button>
         </div>
         <LandingPage
           readers={readers}
-          setReaders={setReaders}
+          setReaders={handleSetReaders}
           onOpenBook={openBook}
           family={family}
+          user={user}
+          onLoginClick={() => setShowLogin(true)}
         />
       </>
     );
@@ -308,6 +373,7 @@ export default function App() {
   if (view === 'cloud_library') {
     return (
       <>
+        {loginModal}
         <div className="landing-theme-toggle">
           <button onClick={cycleTheme}>{themeLabel}</button>
         </div>
@@ -324,6 +390,7 @@ export default function App() {
   if (view === 'categories') {
     return (
       <>
+        {loginModal}
         <div className="landing-theme-toggle">
           <button onClick={cycleTheme}>{themeLabel}</button>
         </div>
@@ -360,14 +427,17 @@ export default function App() {
               {sidebarOpen ? '◀' : '▶'}
             </button>
             <button
-              onClick={() => activeBook === 'thjodsogar' ? setView('categories') : setView('home')}
-              style={{ opacity: 0.6, fontSize: '0.82rem' }}
+              onClick={() => setView('home')}
+              style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--accent-color)' }}
             >
-              {activeBook === 'thjodsogar' ? '← Flokkar' : '← Aftur á forsíðu'}
+              ᛭ Lestrarsalurinn (Forsíða)
             </button>
             <span className="top-bar-title">{chapters[currentChapterIndex]?.title ?? ''}</span>
           </div>
           <div className="toolbar-group">
+            <button onClick={handleShareClick} className="btn-primary" title="Senda hlekk á söguna á barnið">
+              🔗 Deila
+            </button>
             <button onClick={cycleTheme}>{themeLabel}</button>
             <button onClick={() => setParentOpen(true)} className="readers-btn" title="Foreldragluggi">
               🎧 Hlusta
@@ -433,7 +503,7 @@ export default function App() {
       {readersOpen && (
         <ReadersSetup
           readers={readers}
-          setReaders={setReaders}
+          setReaders={handleSetReaders}
           onClose={() => setReadersOpen(false)}
         />
       )}
